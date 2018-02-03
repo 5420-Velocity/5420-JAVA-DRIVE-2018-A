@@ -58,6 +58,8 @@ public class Robot extends TimedRobot {
 	// Motor Setup
 	public VictorSP motorFL, motorBL, motorBR, motorFR;
 	public MecDrive MyDrive;
+	
+	public char[] GamePos;
 
 	/**
 	 * This function is run when the robot is first started up and should be
@@ -137,17 +139,28 @@ public class Robot extends TimedRobot {
 		timer.start();
 		compressor0.setClosedLoopControl(true);
 		autonomousCommand = chooser.getSelected();
-
-		 String autoSelected = SmartDashboard.getString("Auto Selector", "Default");
-		 switch(autoSelected) {
-		 	case "My Auto":
-		 		
-		 	break;
-		 	case "Default Auto":
-		 	default:
-		 		//autonomousCommand = new ExampleCommand();
-		 	break;
-		 }
+		this.GamePos = DriverStation.getInstance().getGameSpecificMessage().toCharArray();
+		/**
+		 * DriverStation.getInstance().getGameSpecificMessage() returns the Data of the Left or Right 
+		 *      Direction of your Color on the Switch Scale Switch.
+		 * The First Char of the String will ALWAYS be the once closest to your drive station wall.
+		 * 
+		 * if( gameData.charAt(0) == 'L' ) // The Close Switch's Left Side is your Color.
+		 * if( gameData.charAt(1) == 'L' ) // Scale's Left Side is your Color.
+		 * if( gameData.charAt(2) == 'L' ) // The Far Switch's Left Side is your Color.
+		 */
+		
+		
+		String autoSelected = SmartDashboard.getString("Auto Selector", "Default");
+		switch(autoSelected) {
+			case "My Auto":
+				
+			break;
+			case "Default Auto":
+			default:
+				//autonomousCommand = new ExampleCommand();
+			break;
+		}
 		 
 
 		// Schedule the autonomous command
