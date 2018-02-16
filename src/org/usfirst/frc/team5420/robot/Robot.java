@@ -8,6 +8,7 @@
 package org.usfirst.frc.team5420.robot;
 
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
+import edu.wpi.first.wpilibj.CameraServer;
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -17,6 +18,7 @@ import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.Ultrasonic;
 import edu.wpi.first.wpilibj.VictorSP;
 import edu.wpi.first.wpilibj.command.Command;
 import edu.wpi.first.wpilibj.command.Scheduler;
@@ -48,18 +50,28 @@ public class Robot extends TimedRobot {
 	
 	public static Compressor compressor0;
 	public static  Solenoid solenoid0, solenoid1;
+	public static  Solenoid breakOn, breakOff;
+	
+	public static Ultrasonic liftSensor; 
 	
 	public static Encoder encoder0, encoder1;
+	public static Encoder encoderArm, encoderLift;
 	public static DigitalInput UpperLimit, LowerLimit;
+	public static DigitalInput CloseMiss;
 	
 	public static Joystick joystick0, joystick1;
-	public static VictorSP LiftMotor;
+	public static VictorSP LiftMotor, ArmMotor;
 	
 	// Motor Setup
 	public VictorSP motorFL, motorBL, motorBR, motorFR;
 	public MecDrive MyDrive;
 	
 	public char[] GamePos;
+	
+	/**
+	 * When it is true the Claw is Closed, when it is False It should be Open.
+	 */
+	public boolean clawState = true; // Default, Assuming the Close State for Auto
 
 	/**
 	 * This function is run when the robot is first started up and should be
@@ -70,6 +82,9 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putBoolean("AutoInitComplete", false);
 		SmartDashboard.putBoolean("TeleopInitComplete", false);
 		SmartDashboard.putBoolean("RobotInit", false);
+		
+		
+		CameraServer.getInstance().startAutomaticCapture();
 		
 		color = DriverStation.getInstance().getAlliance();
 		time = DriverStation.getInstance().getMatchTime();
@@ -82,26 +97,37 @@ public class Robot extends TimedRobot {
 		compressor0 = new Compressor(0);
 		solenoid0 = new Solenoid(1); // Claw Close 
 		solenoid1 = new Solenoid(2); // Claw Open
+		breakOn = new Solenoid(3); // Pull the Cylinder Close, Break on 
+		breakOff = new Solenoid(4); // Push the Cylinder Open, Break off
 		
-		encoder0 = new Encoder(4,5, false, Encoder.EncodingType.k4X); // Left DIO, DIO
-		encoder1 = new Encoder(6,7, false, Encoder.EncodingType.k4X); // Right DIO, DIO
+		liftSensor = new Ultrasonic(10,11); // creates the ultra object andassigns ultra to be an ultrasonic sensor which uses DigitalOutput 1 for 
+		
+		encoder0 = new Encoder(2,3, false, Encoder.EncodingType.k4X); // Left DIO, DIO
+		encoder1 = new Encoder(4,5, false, Encoder.EncodingType.k4X); // Right DIO, DIO
+		encoderLift = new Encoder(6,7, false, Encoder.EncodingType.k4X); // Lift DIO, DIO
+		encoderArm = new Encoder(8,9, false, Encoder.EncodingType.k4X); // Arm DIO, DIO
 		
 		joystick0 = new Joystick(0); //Controller One USB
 		joystick1 = new Joystick(1); //Controller Two USB
 		
-		UpperLimit = new DigitalInput(0); // DIO
-		LowerLimit = new DigitalInput(9); // DIO
+		//LowerLimit = new DigitalInput(0); // DIO
+		//UpperLimit = new DigitalInput(1); // DIO
+		CloseMiss = new DigitalInput(1); // Disableed, Used the same Interface as the Encoder
 		
-		LiftMotor= new VictorSP(2); // PWM
+		LiftMotor = new VictorSP(2); // PWM
+		ArmMotor = new VictorSP(1); // PWM
 		
-		motorFL= new VictorSP(3); // PWM
-		motorBL= new VictorSP(4); // PWM
-		
-		motorBR= new VictorSP(5); // PWM
-		motorFR= new VictorSP(6); // PWM
+		motorFL = new VictorSP(3); // PWM
+		motorBL = new VictorSP(4); // PWM
+		motorBR = new VictorSP(5); // PWM
+		motorFR = new VictorSP(6); // PWM
 		
 		MyDrive = new MecDrive(motorFL, motorBL, motorBR, motorFR, 0.1);
-		
+		MyDrive.setGyro(gyroSensor); // Send the Gyro Object
+		MyDrive.invert(true);
+		MyDrive.setDeadband(0.2);
+		MyDrive.enableDeadband();
+		//MyDrive.gyroSensor = gyroSensor;
 		SmartDashboard.putBoolean("RobotInit", true);
 	}
 
@@ -117,7 +143,6 @@ public class Robot extends TimedRobot {
 
 	@Override
 	public void disabledPeriodic() {
-		
 		heartbeat();
 		Scheduler.getInstance().run();
 	}
@@ -135,6 +160,8 @@ public class Robot extends TimedRobot {
 	 */
 	@Override
 	public void autonomousInit() {
+		solenoidUpdate(clawState, solenoid0, solenoid1); // Set the init State, Set asap.
+		
 		timer.reset();
 		timer.start();
 		compressor0.setClosedLoopControl(true);
@@ -145,12 +172,11 @@ public class Robot extends TimedRobot {
 		 *      Direction of your Color on the Switch Scale Switch.
 		 * The First Char of the String will ALWAYS be the once closest to your drive station wall.
 		 * 
-		 * if( gameData.charAt(0) == 'L' ) // The Close Switch's Left Side is your Color.
-		 * if( gameData.charAt(1) == 'L' ) // Scale's Left Side is your Color.
-		 * if( gameData.charAt(2) == 'L' ) // The Far Switch's Left Side is your Color.
+		 * if( GamePos[0] == 'L' ) // The Close Switch Left Side is your Color.
+		 * if( GamePos[1] == 'L' ) // Scale's Left Side is your Color.
+		 * if( GamePos[2] == 'L' ) // The Far Switch Left Side is your Color.
 		 */
-		
-		
+
 		String autoSelected = SmartDashboard.getString("Auto Selector", "Default");
 		switch(autoSelected) {
 			case "My Auto":
@@ -162,7 +188,7 @@ public class Robot extends TimedRobot {
 			break;
 		}
 		 
-
+		
 		// Schedule the autonomous command
 		if (autonomousCommand != null)
 			autonomousCommand.start();
@@ -180,6 +206,8 @@ public class Robot extends TimedRobot {
 
 	@Override
 	public void teleopInit() {
+		this.MyDrive.DriveControl.setSafetyEnabled(true); // Shuts off motors when their outputs aren't updated often enough.
+		
 		if (autonomousCommand != null)
 			autonomousCommand.cancel();
 		SmartDashboard.putBoolean("TeleopInitComplete", true);
@@ -190,14 +218,65 @@ public class Robot extends TimedRobot {
 	 */
 	@Override
 	public void teleopPeriodic() {
-		double powerJoy = joystick0.getRawAxis(0);
-		double turnJoy = joystick0.getRawAxis(1);
-		double crabJoy = joystick0.getRawAxis(2);
-		MyDrive.drive(powerJoy, turnJoy, crabJoy);
+		double powerJoy = ( joystick0.getRawAxis(2) + (-joystick0.getRawAxis(3)) ); // Add the 2 values from the Controller Inputs
+		double turnJoy = -joystick0.getRawAxis(0);
+		double crabJoy = joystick0.getRawAxis(4);
 		
-		SmartDashboard.putNumber("DrivePower", powerJoy );
-		SmartDashboard.putNumber("DriveTurn", turnJoy );
-		SmartDashboard.putNumber("DriveCrab", crabJoy );
+		// Driver B Button (XBOX)
+		// This Sets all of the Motors to a Stop State when Pressed.
+			if(joystick0.getRawButton(2)){
+				MyDrive.DriveControl.stopMotor();
+			}
+			else {
+				MyDrive.drive(powerJoy, turnJoy, crabJoy);
+			}
+		
+			SmartDashboard.putNumber("DrivePower", powerJoy ); // Send Value to the Dashboard
+			SmartDashboard.putNumber("DriveTurn", turnJoy ); // Send Value to the Dashboard
+			SmartDashboard.putNumber("DriveCrab", crabJoy ); // Send Value to the Dashboard
+		
+		// Driver A Button (XBOX)
+		// This is to open and close the Solenoid, May run into the issue where it may re open if you hold it.
+			if(joystick0.getRawButton(1)){
+				solenoidUpdate(false, solenoid0, solenoid1); // Set the State
+			}
+			else {
+				solenoidUpdate(true, solenoid0, solenoid1); // Set the State
+			}
+		
+		// Driver X, Y
+		// This is to control the Lift action and it's motor+break.
+			if(joystick0.getRawButton(4)){
+				// If Button 3 is pressed Y, Up
+				System.out.println("Up");
+				LiftMotor.setSpeed(0.9);
+			}
+			else if(joystick0.getRawButton(3)) {
+				// If button 4 is pressed X, Down
+				System.out.println("Down");
+				LiftMotor.setSpeed(-0.4);
+			}
+			else {
+				System.out.println("Normal");
+				LiftMotor.stopMotor();
+			}
+		
+		// Driver Bumper Buttons
+		// This is for the Arm Lift Control (RB, LB)
+			if(joystick0.getRawButton(5)){
+				// RB, UP
+				ArmMotor.setSpeed(0.5);
+			}
+			else if(joystick0.getRawButton(6)) {
+				// RB, UP
+				ArmMotor.setSpeed(-0.5);
+			}
+			else {
+				ArmMotor.stopMotor();
+			}
+			
+		SmartDashboard.putBoolean("CloseMiss", CloseMiss.get());
+		
 		
 		heartbeat();
 		Scheduler.getInstance().run();
@@ -222,5 +301,16 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putNumber("MatchTime", time);
 		SmartDashboard.putNumber("SystemTime", System.currentTimeMillis() / 1000L);
 		SmartDashboard.putNumber("RunningHeartbeat", timer.get());
+	}
+	
+	/**
+	 * Used to set the State for the Solinoid Controls
+	 * @param NewState NewState The State to set on the solinoids
+	 * @param Port1 Solenoid When State is True it is Set to True
+	 * @param Port2 Port2 When State is True it is Set to False 
+	 */
+	public void solenoidUpdate(boolean NewState, Solenoid Port1, Solenoid Port2){
+		Port1.set(NewState);
+		Port2.set(!NewState);
 	}
 }

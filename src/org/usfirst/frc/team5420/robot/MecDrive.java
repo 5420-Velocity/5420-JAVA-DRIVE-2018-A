@@ -2,12 +2,14 @@ package org.usfirst.frc.team5420.robot;
 
 import edu.wpi.first.wpilibj.SpeedController;
 import edu.wpi.first.wpilibj.drive.MecanumDrive;
+import edu.wpi.first.wpilibj.interfaces.Gyro;
 
 public class MecDrive {
 	public double deadband = 0;
 	public boolean deadband_enabled = false;
 	private SpeedController leftFront, rightFront, leftRear, rightRear;
-	private MecanumDrive DriveControl;
+	public MecanumDrive DriveControl;
+	public Gyro gyroSensor = null;
 
 	/*
 	 * Mecanum Drive Init
@@ -24,6 +26,7 @@ public class MecDrive {
 		this.rightRear = inRR;
 		
 		DriveControl = new MecanumDrive(inLF, inLR, inRF, inRR); // Start the WPI Motor Control
+		DriveControl.setSafetyEnabled(false); // MecanumDrive > RobotDriveBase > MotorSafety: Shuts off motors when their outputs aren't updated often enough.
 	}
 	
 	/*
@@ -67,16 +70,34 @@ public class MecDrive {
 	 */
 	public void drive( double Power, double Turn, double Crab ){
 		//myDrive.driveCartesian(0, 0, 0, 0);
-		//                        ^  ^  ^
-		//                        |  |  |
-		//       Left / Right    /   |  |
-		//                Rotation  /   |
-		//            Forward Reverse  /
+		//                        ^  ^  ^ ^
+		//                        |  |  | |
+		//       Left / Right    /   |  | |
+		//                Rotation  /   | |
+		//            Forward Reverse  /  |
+		//                         Gyro  /
 		//
-		Power = do_deadband(Power);
-		Turn = do_deadband(Turn);
-		Crab = do_deadband(Crab);
-		this.DriveControl.driveCartesian(Crab, Turn, Power, 0);
+		Power = this.deadzone(Power);
+		Turn = this.deadzone(Turn);
+		Crab = this.deadzone(Crab);
+		
+		if (this.gyroSensor == null){
+			this.DriveControl.driveCartesian(Power, Crab, Turn);
+		}
+		else {
+			this.DriveControl.driveCartesian(Power, Crab, Turn, this.gyroSensor.getAngle());
+		}
+	}
+	
+	public void setGyro(Gyro gyroIn){
+		this.gyroSensor = gyroIn;
+	}
+	
+	public void invert(boolean doInvert){
+		this.leftFront.setInverted(doInvert);
+		this.leftRear.setInverted(doInvert);
+		this.rightFront.setInverted(doInvert);
+		this.rightRear.setInverted(doInvert);
 	}
 	
 	/**
@@ -167,16 +188,18 @@ public class MecDrive {
 	
 	/**
 	 * If the Deadband is enabled in the Class then apply the deadband.
-	 * @param double Joystick in Value.
-	 * @return double The Joystick Value.
+	 * @param double Input of gray Zone
 	 */
-	public double do_deadband (double joystick) {
-		if(this.deadband_enabled == true){
-			return this.deadband(joystick);
-		}
-		else {
-			return joystick;
-		}
+	public void setDeadband (double limit) {
+		this.deadband = limit;
+	}
+	
+	/**
+	 * Stop the Actions for Applying restrictions on the deadband.
+	 * @param double The Value to apply the Deadband to.
+	 */
+	public void disableDeadband() {
+		this.deadband_enabled = false;
 	}
 	
 	/**
@@ -184,20 +207,38 @@ public class MecDrive {
 	 * @param double The Value to apply the Deadband to.
 	 * @return double Returns the Deadband value.
 	 */
-	public double deadband(double joystick) {
-	    if(joystick < this.deadband || (joystick)*-1 > this.deadband ) return 0;
-	    else return joystick;
+	public void enableDeadband() {
+		this.deadband_enabled = false;
 	}
 	
 	/**
-	 * Apply the deadband restriction to the value input using the given Input.
-	 * @param double Joystick in Value.
-	 * @param double The zone for the deadband to ingore (The Dead zone).
+	 * Apply the deadband on the Input Value.
+	 * @param joystick The Controller Input.
+	 * @param deadband The Limit Zone for the Controller Input.
+	 * @return The Final Value (Double)
+	 */
+	public double deadzone(double joystick, double deadband){
+    	if( Math.abs(joystick) < deadband ){
+    		return 0;
+    	}
+    	else {
+    		return joystick;
+    	}
+    }
+	
+	/**
+	 * Applies the Deadband based off of the System Value
+	 * @see deadzone
+	 * @param joystick
 	 * @return
 	 */
-	public double deadband(double joystick, double dead) {
-	    if(joystick < dead || (joystick)*1 > dead) return 0;
-	    else return joystick;
-	}
+	public double deadzone(double joystick){
+    	if( Math.abs(joystick) < this.deadband ){
+    		return 0;
+    	}
+    	else {
+    		return joystick;
+    	}
+    }
 	
 }
