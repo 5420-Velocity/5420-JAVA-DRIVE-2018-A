@@ -130,6 +130,16 @@ public class Robot extends TimedRobot {
 		//MyDrive.gyroSensor = gyroSensor;
 		SmartDashboard.putBoolean("RobotInit", true);
 	}
+	
+	/**
+	 * Periodic code for all robot modes should go here.
+	 * @link http://first.wpi.edu/FRC/roborio/release/docs/java/edu/wpi/first/wpilibj/IterativeRobotBase.html#robotPeriodic--
+	 */
+	@Override
+	public void robotPeriodic(){
+		heartbeat();
+		SmartDashboard.putNumber("Angle", gyroSensor.getAngle());
+	}
 
 	/**
 	 * This function is called once each time the robot enters Disabled mode.
@@ -143,7 +153,6 @@ public class Robot extends TimedRobot {
 
 	@Override
 	public void disabledPeriodic() {
-		heartbeat();
 		Scheduler.getInstance().run();
 	}
 
@@ -187,7 +196,6 @@ public class Robot extends TimedRobot {
 				//autonomousCommand = new ExampleCommand();
 			break;
 		}
-		 
 		
 		// Schedule the autonomous command
 		if (autonomousCommand != null)
@@ -200,7 +208,6 @@ public class Robot extends TimedRobot {
 	 */
 	@Override
 	public void autonomousPeriodic() {
-		heartbeat();
 		Scheduler.getInstance().run();
 	}
 
@@ -218,12 +225,13 @@ public class Robot extends TimedRobot {
 	 */
 	@Override
 	public void teleopPeriodic() {
-		double powerJoy = ( joystick0.getRawAxis(2) + (-joystick0.getRawAxis(3)) ); // Add the 2 values from the Controller Inputs
-		double turnJoy = -joystick0.getRawAxis(0);
-		double crabJoy = joystick0.getRawAxis(4);
 		
 		// Driver B Button (XBOX)
 		// This Sets all of the Motors to a Stop State when Pressed.
+			double powerJoy = ( joystick0.getRawAxis(2) + (-joystick0.getRawAxis(3)) ); // Add the 2 values from the Controller Inputs
+			double turnJoy = -joystick0.getRawAxis(0);
+			double crabJoy = joystick0.getRawAxis(4);
+			
 			if(joystick0.getRawButton(2)){
 				MyDrive.DriveControl.stopMotor();
 			}
@@ -236,7 +244,7 @@ public class Robot extends TimedRobot {
 			SmartDashboard.putNumber("DriveCrab", crabJoy ); // Send Value to the Dashboard
 		
 		// Driver A Button (XBOX)
-		// This is to open and close the Solenoid, May run into the issue where it may re open if you hold it.
+		// This is to open and close the Solenoid
 			if(joystick0.getRawButton(1)){
 				solenoidUpdate(false, solenoid0, solenoid1); // Set the State
 			}
@@ -249,15 +257,18 @@ public class Robot extends TimedRobot {
 			if(joystick0.getRawButton(4)){
 				// If Button 3 is pressed Y, Up
 				System.out.println("Up");
+				solenoidUpdate(false, breakOn, breakOff);
 				LiftMotor.setSpeed(0.9);
 			}
 			else if(joystick0.getRawButton(3)) {
 				// If button 4 is pressed X, Down
 				System.out.println("Down");
+				solenoidUpdate(false, breakOn, breakOff);
 				LiftMotor.setSpeed(-0.4);
 			}
 			else {
 				System.out.println("Normal");
+				solenoidUpdate(false, breakOn, breakOff);
 				LiftMotor.stopMotor();
 			}
 		
@@ -276,18 +287,7 @@ public class Robot extends TimedRobot {
 			}
 			
 		SmartDashboard.putBoolean("CloseMiss", CloseMiss.get());
-		
-		
-		heartbeat();
 		Scheduler.getInstance().run();
-	}
-
-	/**
-	 * This function is called periodically during test mode.
-	 */
-	@Override
-	public void testPeriodic() {
-		
 	}
 	
 	
