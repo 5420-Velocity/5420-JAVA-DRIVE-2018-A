@@ -279,15 +279,15 @@ public class Robot extends TimedRobot {
 				solenoidUpdate(clawState, solenoid0, solenoid1); // Set the State
 			}
 		
-		// Driver X, Y
+		// Driver (RB, LB)
 		// This is to control the Lift action and it's motor+break.
-			if(joystick0.getRawButton(4)){
-				// If Button 3 is pressed Y, Up
+			if(joystick0.getRawButton(5)){
+				// RB, Up
 				System.out.println("UP");
 				LiftMotor.setSpeed(0.65);
 			}
-			else if(joystick0.getRawButton(3)) {
-				// If button 4 is pressed X, Down
+			else if(joystick0.getRawButton(6)) {
+				// LB, Down
 				System.out.println("DOWN");
 				LiftMotor.setSpeed(-0.4);
 			}
@@ -295,16 +295,16 @@ public class Robot extends TimedRobot {
 				LiftMotor.stopMotor();
 			}
 		
-		// Driver Bumper Buttons
-		// This is for the Arm Lift Control (RB, LB)
-			if(joystick0.getRawButton(5)){
-				// RB, UP
+		// Driver XY Buttons
+		// This is for the Arm Lift Control (X, Y)
+			if(joystick0.getRawButton(4)){
+				// X, UP
 				System.out.println("Up");
 				solenoidUpdate(false, breakOn, breakOff);
 				ArmMotor.setSpeed(0.5);
 			}
-			else if(joystick0.getRawButton(6)) {
-				// RB, Down
+			else if(joystick0.getRawButton(3)) {
+				// Y, Down
 				System.out.println("Down");
 				solenoidUpdate(false, breakOn, breakOff);
 				ArmMotor.setSpeed(-0.5);
