@@ -7,7 +7,7 @@ import edu.wpi.first.wpilibj.interfaces.Gyro;
 public class MecDrive {
 	public double deadband = 0;
 	public boolean deadband_enabled = false;
-	private SpeedController leftFront, rightFront, leftRear, rightRear;
+	private SpeedController leftFront, leftRear, rightFront, rightRear;
 	public MecanumDrive DriveControl;
 	public Gyro gyroSensor = null;
 
@@ -19,13 +19,14 @@ public class MecDrive {
 	 * @param SpeedController Left Rear Controller
 	 * @param SpeedController Right Rear Controller
 	 */
-	public MecDrive( SpeedController inLF, SpeedController inRF, SpeedController inLR, SpeedController inRR ){
-		this.leftFront = inLF;
-		this.rightFront = inRF;
-		this.leftRear = inLR;
-		this.rightRear = inRR;
+	//               SpeedController frontLeftMotor, SpeedController rearLeftMotor, SpeedController frontRightMotor, SpeedController rearRightMotor
+	public MecDrive( SpeedController frontLeftMotor, SpeedController rearLeftMotor, SpeedController frontRightMotor, SpeedController rearRightMotor ){
+		this.leftFront = frontLeftMotor;
+		this.leftRear = rearLeftMotor;
+		this.rightFront = frontRightMotor;
+		this.rightRear = rearRightMotor;
 		
-		DriveControl = new MecanumDrive(inLF, inLR, inRF, inRR); // Start the WPI Motor Control
+		DriveControl = new MecanumDrive(frontLeftMotor, rearLeftMotor, frontRightMotor, rearRightMotor); // Start the WPI Motor Control
 		DriveControl.setSafetyEnabled(false); // MecanumDrive > RobotDriveBase > MotorSafety: Shuts off motors when their outputs aren't updated often enough.
 	}
 	
@@ -38,8 +39,8 @@ public class MecDrive {
 	 * @param SpeedController Right Rear Controller
 	 * @param double		  Deadband Value
 	 */
-	public MecDrive( SpeedController inLF, SpeedController inRF, SpeedController inLR, SpeedController inRR, double deadband ){
-		this(inLF, inRF, inLR, inRR);
+	public MecDrive( SpeedController frontLeftMotor, SpeedController rearLeftMotor, SpeedController frontRightMotor, SpeedController rearRightMotor, double deadband ){
+		this(frontLeftMotor, rearLeftMotor, frontRightMotor, rearRightMotor);
 		this.deadband = deadband;
 		this.deadband_enabled = true;
 	}
@@ -82,10 +83,12 @@ public class MecDrive {
 		Crab = this.deadzone(Crab);
 		
 		if (this.gyroSensor == null){
-			this.DriveControl.driveCartesian(Power, Crab, Turn);
+			this.DriveControl.driveCartesian(Power, Crab, Turn, 0);
+			System.out.println("No Gyro");
 		}
 		else {
 			this.DriveControl.driveCartesian(Power, Crab, Turn, this.gyroSensor.getAngle());
+			System.out.println("Gyro");
 		}
 	}
 	

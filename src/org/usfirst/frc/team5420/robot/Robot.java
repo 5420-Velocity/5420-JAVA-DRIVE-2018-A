@@ -63,7 +63,7 @@ public class Robot extends TimedRobot {
 	public static VictorSP LiftMotor, ArmMotor;
 	
 	// Motor Setup
-	public VictorSP motorFL, motorBL, motorBR, motorFR;
+	public VictorSP motorFL, motorRL, motorRR, motorFR;
 	public MecDrive MyDrive;
 	
 	public char[] GamePos;
@@ -83,6 +83,12 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putBoolean("TeleopInitComplete", false);
 		SmartDashboard.putBoolean("RobotInit", false);
 		
+		SmartDashboard.putNumber("DrivePower", 0 ); // Init Drive Station Values
+		SmartDashboard.putNumber("DriveTurn", 0 ); // Init Drive Station Values
+		SmartDashboard.putNumber("DriveCrab", 0 ); // Init Drive Station Values
+		SmartDashboard.putBoolean("ClawOpenSignal", clawState);
+		SmartDashboard.putBoolean("CloseMIss", false);
+		
 		
 		CameraServer.getInstance().startAutomaticCapture();
 		
@@ -91,8 +97,8 @@ public class Robot extends TimedRobot {
 		
 		jio = new OI();
 		
-		gyroSensor = new ADXRS450_Gyro( SPI.Port.kOnboardCS0 ); // SPI
-		gyroSensor.calibrate(); // SPI
+		//gyroSensor = new ADXRS450_Gyro( SPI.Port.kOnboardCS0 ); // SPI
+		//gyroSensor.calibrate(); // SPI
 		
 		compressor0 = new Compressor(0);
 		solenoid0 = new Solenoid(1); // Claw Close 
@@ -103,7 +109,7 @@ public class Robot extends TimedRobot {
 		liftSensor = new Ultrasonic(10,11); // creates the ultra object andassigns ultra to be an ultrasonic sensor which uses DigitalOutput 1 for 
 		
 		encoder0 = new Encoder(2,3, false, Encoder.EncodingType.k4X); // Left DIO, DIO
-		encoder1 = new Encoder(4,5, false, Encoder.EncodingType.k4X); // Right DIO, DIO
+		encoder1 = new Encoder(4,5, true, Encoder.EncodingType.k4X); // Right DIO, DIO, Reversed Count Direction since it is the Right Side
 		encoderLift = new Encoder(6,7, false, Encoder.EncodingType.k4X); // Lift DIO, DIO
 		encoderArm = new Encoder(8,9, false, Encoder.EncodingType.k4X); // Arm DIO, DIO
 		
@@ -118,11 +124,12 @@ public class Robot extends TimedRobot {
 		ArmMotor = new VictorSP(1); // PWM
 		
 		motorFL = new VictorSP(3); // PWM
-		motorBL = new VictorSP(4); // PWM
-		motorBR = new VictorSP(5); // PWM
+		motorRL = new VictorSP(4); // PWM
 		motorFR = new VictorSP(6); // PWM
+		motorRR = new VictorSP(5); // PWM
 		
-		MyDrive = new MecDrive(motorFL, motorBL, motorBR, motorFR, 0.1);
+		//       frontLeftMotor, rearLeftMotor, frontRightMotor, rearRightMotor
+		MyDrive = new MecDrive(motorFL, motorFR, motorRL, motorRR);
 		MyDrive.setGyro(gyroSensor); // Send the Gyro Object
 		MyDrive.invert(true);
 		MyDrive.setDeadband(0.2);
@@ -138,7 +145,20 @@ public class Robot extends TimedRobot {
 	@Override
 	public void robotPeriodic(){
 		heartbeat();
-		SmartDashboard.putNumber("Angle", gyroSensor.getAngle());
+		//SmartDashboard.putNumber("Angle", gyroSensor.getAngle());
+		SmartDashboard.putNumber("LiftPos", encoderLift.getDistance());
+		SmartDashboard.putNumber("LiftArmPos", encoderArm.getDistance());
+		
+		SmartDashboard.putNumber("EncoderLeft", encoder0.getDistance());
+		SmartDashboard.putNumber("EncoderRight", encoder1.getDistance());
+		
+		
+		// Reset the Encoder Values
+		if(SmartDashboard.getBoolean("ResetDriveENC", false) == true){
+			encoder0.reset();
+			encoder1.reset();
+		}
+		
 	}
 
 	/**
@@ -170,6 +190,7 @@ public class Robot extends TimedRobot {
 	@Override
 	public void autonomousInit() {
 		solenoidUpdate(clawState, solenoid0, solenoid1); // Set the init State, Set asap.
+		SmartDashboard.putBoolean("ClawOpenSignal", clawState);
 		
 		timer.reset();
 		timer.start();
@@ -218,6 +239,8 @@ public class Robot extends TimedRobot {
 		if (autonomousCommand != null)
 			autonomousCommand.cancel();
 		SmartDashboard.putBoolean("TeleopInitComplete", true);
+		timer.reset();
+		timer.start();
 	}
 
 	/**
@@ -228,8 +251,8 @@ public class Robot extends TimedRobot {
 		
 		// Driver B Button (XBOX)
 		// This Sets all of the Motors to a Stop State when Pressed.
-			double powerJoy = ( joystick0.getRawAxis(2) + (-joystick0.getRawAxis(3)) ); // Add the 2 values from the Controller Inputs
-			double turnJoy = -joystick0.getRawAxis(0);
+			double powerJoy = ( (-joystick0.getRawAxis(2)) + joystick0.getRawAxis(3) ); // Add the 2 values from the Controller Inputs
+			double turnJoy = joystick0.getRawAxis(0);
 			double crabJoy = joystick0.getRawAxis(4);
 			
 			if(joystick0.getRawButton(2)){
@@ -246,29 +269,29 @@ public class Robot extends TimedRobot {
 		// Driver A Button (XBOX)
 		// This is to open and close the Solenoid
 			if(joystick0.getRawButton(1)){
-				solenoidUpdate(false, solenoid0, solenoid1); // Set the State
+				clawState = false;
+				SmartDashboard.putBoolean("ClawOpenSignal", clawState);
+				solenoidUpdate(clawState, solenoid0, solenoid1); // Set the State
 			}
 			else {
-				solenoidUpdate(true, solenoid0, solenoid1); // Set the State
+				clawState = true;
+				SmartDashboard.putBoolean("ClawOpenSignal", clawState);
+				solenoidUpdate(clawState, solenoid0, solenoid1); // Set the State
 			}
 		
 		// Driver X, Y
 		// This is to control the Lift action and it's motor+break.
 			if(joystick0.getRawButton(4)){
 				// If Button 3 is pressed Y, Up
-				System.out.println("Up");
-				solenoidUpdate(false, breakOn, breakOff);
-				LiftMotor.setSpeed(0.9);
+				System.out.println("UP");
+				LiftMotor.setSpeed(0.65);
 			}
 			else if(joystick0.getRawButton(3)) {
 				// If button 4 is pressed X, Down
-				System.out.println("Down");
-				solenoidUpdate(false, breakOn, breakOff);
+				System.out.println("DOWN");
 				LiftMotor.setSpeed(-0.4);
 			}
 			else {
-				System.out.println("Normal");
-				solenoidUpdate(false, breakOn, breakOff);
 				LiftMotor.stopMotor();
 			}
 		
@@ -276,13 +299,18 @@ public class Robot extends TimedRobot {
 		// This is for the Arm Lift Control (RB, LB)
 			if(joystick0.getRawButton(5)){
 				// RB, UP
+				System.out.println("Up");
+				solenoidUpdate(false, breakOn, breakOff);
 				ArmMotor.setSpeed(0.5);
 			}
 			else if(joystick0.getRawButton(6)) {
-				// RB, UP
+				// RB, Down
+				System.out.println("Down");
+				solenoidUpdate(false, breakOn, breakOff);
 				ArmMotor.setSpeed(-0.5);
 			}
 			else {
+				solenoidUpdate(true, breakOn, breakOff);
 				ArmMotor.stopMotor();
 			}
 			
