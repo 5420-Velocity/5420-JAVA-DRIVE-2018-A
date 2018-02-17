@@ -141,7 +141,7 @@ public class Robot extends TimedRobot {
 		MyDrive = new MecDrive(motorFL, motorFR, motorRL, motorRR);
 		MyDrive.setGyro(gyroSensor); // Send the Gyro Object
 		MyDrive.invert(true);
-		MyDrive.setDeadband(0.03);
+		MyDrive.setDeadband(0.12);
 		MyDrive.enableDeadband();
 		//MyDrive.gyroSensor = gyroSensor;
 		
@@ -164,6 +164,7 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putNumber("EncoderRight", encoder1.getDistance());
 		
 		SmartDashboard.putNumber("Battery", pdp.getVoltage());
+		SmartDashboard.putNumber("CurrentAmps", pdp.getTotalCurrent());
 		
 		// Reset the Encoder Values
 		if(SmartDashboard.getBoolean("ResetDriveENC", false) == true){
@@ -268,7 +269,7 @@ public class Robot extends TimedRobot {
 			double turnJoy = joystick0.getRawAxis(0);
 			double crabJoy = joystick0.getRawAxis(4);
 			
-			if(joystick0.getRawButton(2)){
+			if(joystick0.getRawButton(2) || joystick1.getRawButton(2) ){
 				MyDrive.DriveControl.stopMotor();
 			}
 			else {
@@ -279,9 +280,9 @@ public class Robot extends TimedRobot {
 			SmartDashboard.putNumber("DriveTurn", turnJoy ); // Send Value to the Dashboard
 			SmartDashboard.putNumber("DriveCrab", crabJoy ); // Send Value to the Dashboard
 		
-		// Driver A Button (XBOX)
+		// Operator A Button (XBOX)
 		// This is to open and close the Solenoid
-			if(joystick0.getRawButton(1)){
+			if(joystick1.getRawButton(1)){
 				clawState = false;
 				SmartDashboard.putBoolean("ClawOpenSignal", clawState);
 				solenoidUpdate(clawState, solenoid0, solenoid1); // Set the State
@@ -292,15 +293,15 @@ public class Robot extends TimedRobot {
 				solenoidUpdate(clawState, solenoid0, solenoid1); // Set the State
 			}
 		
-		// Driver (RB, LB)
+		// Operator
 		// This is to control the Lift action and it's motor+break.
-			if(joystick0.getRawButton(6)){
-				// LB, Up
+			if(joystick1.getRawButton(3)){
+				// Up
 				System.out.println("UP");
 				LiftMotor.setSpeed(0.65);
 			}
-			else if(joystick0.getRawButton(5)) {
-				// RB, Down
+			else if(joystick1.getRawButton(4)) {
+				// Down
 				System.out.println("DOWN");
 				LiftMotor.setSpeed(-0.4);
 			}
@@ -308,22 +309,25 @@ public class Robot extends TimedRobot {
 				LiftMotor.stopMotor();
 			}
 		
-		// Driver XY Buttons
-		// This is for the Arm Lift Control (X, Y)
-			if(joystick0.getRawButton(4)){
-				// X, UP
+		// Operator
+		// This is for the Arm Lift Control
+			double ArmValue = joystick1.getRawAxis(1);
+			System.out.println("A: "+ArmValue);
+			if(ArmValue > 0.5){
+				// UP
 				System.out.println("Up");
 				solenoidUpdate(false, breakOn, breakOff);
 				ArmMotor.setSpeed(0.5);
 			}
-			else if(joystick0.getRawButton(3)) {
-				// Y, Down
+			else if(ArmValue < -0.5) {
+				// Down
 				System.out.println("Down");
 				solenoidUpdate(false, breakOn, breakOff);
 				ArmMotor.setSpeed(-0.5);
 			}
 			else {
 				solenoidUpdate(true, breakOn, breakOff);
+				System.out.println("Normal");
 				ArmMotor.stopMotor();
 			}
 			
