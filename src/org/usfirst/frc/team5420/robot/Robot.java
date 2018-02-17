@@ -14,6 +14,8 @@ import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.PowerDistributionPanel;
+import edu.wpi.first.wpilibj.Preferences;
 import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -66,6 +68,11 @@ public class Robot extends TimedRobot {
 	public VictorSP motorFL, motorRL, motorRR, motorFR;
 	public MecDrive MyDrive;
 	
+	// The Preferences for the Robot Preferences Pannel in the SmartDashboard
+	public Preferences SmartDashboardPref;
+	// @link https://wpilib.screenstepslive.com/s/currentCS/m/java/l/219414-power-distribution-panel
+	PowerDistributionPanel pdp;
+	
 	public char[] GamePos;
 	
 	/**
@@ -86,8 +93,10 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putNumber("DrivePower", 0 ); // Init Drive Station Values
 		SmartDashboard.putNumber("DriveTurn", 0 ); // Init Drive Station Values
 		SmartDashboard.putNumber("DriveCrab", 0 ); // Init Drive Station Values
+		SmartDashboard.putNumber("Battery", 0); // Init Drive Station Values
 		SmartDashboard.putBoolean("ClawOpenSignal", clawState);
-		SmartDashboard.putBoolean("CloseMIss", false);
+		SmartDashboard.putBoolean("CloseMiss", false);
+		SmartDashboard.putBoolean("ResetDriveENC", false);
 		
 		
 		CameraServer.getInstance().startAutomaticCapture();
@@ -108,8 +117,8 @@ public class Robot extends TimedRobot {
 		
 		liftSensor = new Ultrasonic(10,11); // creates the ultra object andassigns ultra to be an ultrasonic sensor which uses DigitalOutput 1 for 
 		
-		encoder0 = new Encoder(2,3, false, Encoder.EncodingType.k4X); // Left DIO, DIO
-		encoder1 = new Encoder(4,5, true, Encoder.EncodingType.k4X); // Right DIO, DIO, Reversed Count Direction since it is the Right Side
+		encoder0 = new Encoder(2,3, true, Encoder.EncodingType.k4X); // Left DIO, DIO, Reversed Count Direction since it is the Right Side
+		encoder1 = new Encoder(4,5, false, Encoder.EncodingType.k4X); // Right DIO, DIO
 		encoderLift = new Encoder(6,7, false, Encoder.EncodingType.k4X); // Lift DIO, DIO
 		encoderArm = new Encoder(8,9, false, Encoder.EncodingType.k4X); // Arm DIO, DIO
 		
@@ -132,9 +141,11 @@ public class Robot extends TimedRobot {
 		MyDrive = new MecDrive(motorFL, motorFR, motorRL, motorRR);
 		MyDrive.setGyro(gyroSensor); // Send the Gyro Object
 		MyDrive.invert(true);
-		MyDrive.setDeadband(0.2);
+		MyDrive.setDeadband(0.03);
 		MyDrive.enableDeadband();
 		//MyDrive.gyroSensor = gyroSensor;
+		
+		pdp = new PowerDistributionPanel();
 		SmartDashboard.putBoolean("RobotInit", true);
 	}
 	
@@ -152,9 +163,11 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putNumber("EncoderLeft", encoder0.getDistance());
 		SmartDashboard.putNumber("EncoderRight", encoder1.getDistance());
 		
+		SmartDashboard.putNumber("Battery", pdp.getVoltage());
 		
 		// Reset the Encoder Values
 		if(SmartDashboard.getBoolean("ResetDriveENC", false) == true){
+			SmartDashboard.putBoolean("ResetDriveENC", false);
 			encoder0.reset();
 			encoder1.reset();
 		}
