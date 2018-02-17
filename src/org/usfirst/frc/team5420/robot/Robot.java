@@ -281,13 +281,13 @@ public class Robot extends TimedRobot {
 		
 		// Driver (RB, LB)
 		// This is to control the Lift action and it's motor+break.
-			if(joystick0.getRawButton(5)){
-				// RB, Up
+			if(joystick0.getRawButton(6)){
+				// LB, Up
 				System.out.println("UP");
 				LiftMotor.setSpeed(0.65);
 			}
-			else if(joystick0.getRawButton(6)) {
-				// LB, Down
+			else if(joystick0.getRawButton(5)) {
+				// RB, Down
 				System.out.println("DOWN");
 				LiftMotor.setSpeed(-0.4);
 			}
