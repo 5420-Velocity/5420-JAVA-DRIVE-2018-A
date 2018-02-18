@@ -7,6 +7,7 @@
 
 package org.usfirst.frc.team5420.robot;
 
+import edu.wpi.cscore.UsbCamera;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.CameraServer;
 import edu.wpi.first.wpilibj.Compressor;
@@ -49,6 +50,7 @@ public class Robot extends TimedRobot {
 	// Setup of the Devices in the Code.
 	Timer timer = new Timer();
 	public ADXRS450_Gyro gyroSensor;
+	public UsbCamera camera;
 	
 	public static Compressor compressor0;
 	public static  Solenoid solenoid0, solenoid1;
@@ -99,7 +101,10 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putBoolean("ResetDriveENC", false);
 		
 		
-		CameraServer.getInstance().startAutomaticCapture();
+		camera = CameraServer.getInstance().startAutomaticCapture();
+		camera.setExposureAuto();
+		camera.setResolution(640, 480);
+		
 		
 		color = DriverStation.getInstance().getAlliance();
 		time = DriverStation.getInstance().getMatchTime();
@@ -298,12 +303,12 @@ public class Robot extends TimedRobot {
 			if(joystick1.getRawButton(3)){
 				// Up
 				System.out.println("UP");
-				LiftMotor.setSpeed(0.65);
+				LiftMotor.setSpeed(0.8);
 			}
 			else if(joystick1.getRawButton(4)) {
 				// Down
 				System.out.println("DOWN");
-				LiftMotor.setSpeed(-0.4);
+				LiftMotor.setSpeed(-0.6);
 			}
 			else {
 				LiftMotor.stopMotor();
