@@ -72,7 +72,7 @@ public class Robot extends TimedRobot {
 	String autonomousCommand;
 	//SendableChooser<Command> chooser = new SendableChooser<>();
 	SendableChooser<String> chooser = new SendableChooser<>();
-	SendableChooser<String> robotPos = new SendableChooser<>();
+	static SendableChooser<String> robotPos = new SendableChooser<>();
 	
 	// Setup of the Devices in the Code.
 	Timer timer = new Timer();
