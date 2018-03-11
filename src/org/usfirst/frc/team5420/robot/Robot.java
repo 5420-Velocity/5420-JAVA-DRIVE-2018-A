@@ -66,18 +66,17 @@ public class Robot extends TimedRobot {
 	public static final double MaxHightEncoder = -7000;
 	public double VirtualOffset = 0;
 	
-	public DriverStation.Alliance color;
+	public static  DriverStation.Alliance color;
 	public double time;
 	public static OI jio;
-	String autonomousCommand;
-	//SendableChooser<Command> chooser = new SendableChooser<>();
-	SendableChooser<String> chooser = new SendableChooser<>();
-	SendableChooser<String> robotPos = new SendableChooser<>();
+	Command autonomousCommand;
+	private static SendableChooser<Command> chooser = new SendableChooser<>();
+	public static SendableChooser<String> robotPos = new SendableChooser<>();
 	
 	// Setup of the Devices in the Code.
-	Timer timer = new Timer();
-	public ADXRS450_Gyro gyroSensor;
-	public UsbCamera camera;
+	public static Timer timer = new Timer();
+	public static ADXRS450_Gyro gyroSensor;
+	public static UsbCamera camera;
 	
 	public static Compressor compressor0;
 	public static  Solenoid solenoid0, solenoid1;
@@ -92,7 +91,7 @@ public class Robot extends TimedRobot {
 	public static DigitalInput CloseMiss;
 	
 	public static Joystick joystick0, joystick1;
-	public static VictorSP LiftMotor, ArmMotor;
+	public static VictorSP clawMotor, liftMotor;
 	
 	// Motor Setup
 	public VictorSP motorFL, motorRL, motorRR, motorFR;
@@ -116,6 +115,9 @@ public class Robot extends TimedRobot {
 	 */
 	@Override
 	public void robotInit() {
+		gyroSensor = new ADXRS450_Gyro( SPI.Port.kOnboardCS0 ); // SPI
+		gyroSensor.calibrate(); // SPI
+		
 		SmartDashboard.putBoolean("AutoInitComplete", false);
 		SmartDashboard.putBoolean("TeleopInitComplete", false);
 		SmartDashboard.putBoolean("RobotInit", false);
@@ -131,36 +133,18 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putBoolean("ResetDriveENC", false);
 		SmartDashboard.putBoolean("UpperLimit", false);
 		SmartDashboard.putBoolean("LowerLimits", false);
-		SmartDashboard.putString("AutoSelect", "(Not Set)");
+		SmartDashboard.putString("autonomousCommand", "(Not Set)");
 		
-		SmartDashboard.putNumber("AutoDelay", 0); // Init Drive Station Values
-		
-		//chooser.addObject(name, object);
-		chooser.addDefault("No Auto Selected", NoAuto);
-		chooser.addObject("Center Auto", CenterSwitchAuto);
-		chooser.addObject("Scale Auto", ScaleAuto);
-		chooser.addObject("Left Switch Auto", SwitchLeft);
-		chooser.addObject("Right Switch Auto", SwitchRight);
-		chooser.addObject("Base Line Auto", BaseLine);
-		SmartDashboard.putData("AutoChoices", chooser);
-				
-		robotPos.addObject("Left (1)", ROBOT_POS_ONE_STR);
-		robotPos.addDefault("Center (2)", ROBOT_POS_TWO_STR);
-		robotPos.addObject("Right (3)", ROBOT_POS_THREE_STR);
-		SmartDashboard.putData("Position", robotPos);
+		SmartDashboard.putNumber("AutoDelay", 0); // Init Drive Station Values		
 		
 		camera = CameraServer.getInstance().startAutomaticCapture();
 		camera.setExposureAuto();
 		camera.setResolution(640, 480);
 		
-		
 		color = DriverStation.getInstance().getAlliance();
 		time = DriverStation.getInstance().getMatchTime();
 		
 		jio = new OI();
-		
-		gyroSensor = new ADXRS450_Gyro( SPI.Port.kOnboardCS0 ); // SPI
-		gyroSensor.calibrate(); // SPI
 		
 		compressor0 = new Compressor(0);
 		solenoid0 = new Solenoid(1); // Claw Close 
@@ -182,8 +166,8 @@ public class Robot extends TimedRobot {
 		//UpperLimit = new DigitalInput(1); // DIO
 		CloseMiss = new DigitalInput(25); // Disableed, Used the same Interface as the Encoder
 		
-		LiftMotor = new VictorSP(2); // PWM
-		ArmMotor = new VictorSP(1); // PWM
+		clawMotor = new VictorSP(2); // PWM
+		liftMotor = new VictorSP(1); // PWM
 		
 		motorFL = new VictorSP(3); // PWM
 		motorRL = new VictorSP(4); // PWM
@@ -198,6 +182,23 @@ public class Robot extends TimedRobot {
 		MyDrive.enableDeadband();
 		
 		pdp = new PowerDistributionPanel();
+		
+		robotPos.addObject("Left (1)", ROBOT_POS_ONE_STR);
+		robotPos.addDefault("Center (2)", ROBOT_POS_TWO_STR);
+		robotPos.addObject("Right (3)", ROBOT_POS_THREE_STR);
+		SmartDashboard.putData("Position", robotPos);
+		
+		//chooser.addObject(name, object);
+		chooser.addDefault("No Auto Selected", new NoAuto());
+		chooser.addObject("Base Line Auto", new AutoBaseline(MyDrive, gyroSensor, encoder0, encoder1, EncoderIN) );
+		chooser.addObject("Auto Left", new AutoLeft(MyDrive, gyroSensor, encoder0, encoder1, EncoderIN) );
+		
+		//chooser.addObject("Center Auto", CenterSwitchAuto);
+		//chooser.addObject("Scale Auto", ScaleAuto);
+		//chooser.addObject("Left Switch Auto", SwitchLeft);
+		//chooser.addObject("Right Switch Auto", SwitchRight);
+		SmartDashboard.putData("AutoChoices", chooser);
+		
 		SmartDashboard.putBoolean("RobotInit", true);
 	}
 	
@@ -265,7 +266,6 @@ public class Robot extends TimedRobot {
 	 */
 	@Override
 	public void autonomousInit() {
-		int baseLine = (128*EncoderIN);
 		solenoidUpdate(clawState, solenoid0, solenoid1); // Set the init State, Set asap.
 		SmartDashboard.putBoolean("ClawOpenSignal", clawState);
 		
@@ -275,14 +275,12 @@ public class Robot extends TimedRobot {
 			Timer.delay( SmartDashboard.getNumber("AutoDelay", 0) );
 		}
 		
-		timer.reset();
-		timer.start();
-		compressor0.setClosedLoopControl(true);
-		autonomousCommand = this.chooser.getSelected();
-		SmartDashboard.putString("AutoSelect", autonomousCommand);
-		String autoSelect = autonomousCommand;
-		String robotPos = this.robotPos.getSelected();
+		timer.reset(); // Reset the Timer that is the Running Time that gets sent to the DS
+		timer.start(); // Start the Timer since reset stopped it.
 		
+		compressor0.setClosedLoopControl(true);
+		autonomousCommand = Robot.chooser.getSelected();
+		SmartDashboard.putString("autonomousCommand", autonomousCommand.getName());
 		this.GamePos = DriverStation.getInstance().getGameSpecificMessage().toCharArray();
 		/**
 		 * DriverStation.getInstance().getGameSpecificMessage() returns the Data of the Left or Right 
@@ -294,95 +292,11 @@ public class Robot extends TimedRobot {
 		 * if( GamePos[2] == 'L' ) // The Far Switch Left Side is your Color.
 		 */
 		
-		if(autonomousCommand == NoAuto){
-			System.out.println("No Auto Selected!");
-			encoder0.reset();
-		}
-		
-		// LR, Auto for the Scale
-		else if(autoSelect == ScaleAuto){
-			// Be sure to Check the Color of the Scale or Switch before running and the Placement.
-		}
-		
-		// C, Swtich
-		else if(autoSelect == CenterSwitchAuto){
-			// Be sure to Check the Color of the Scale or Switch before running and the Placement.
-			if(robotPos == ROBOT_POS_THREE_STR){
-				
-			}
-			
-		}
-		
-		// L Swtich
-		else if(autoSelect == SwitchLeft){
-			
-			// Be sure to Check the Color of the Scale or Switch before running and the Placement.
-			if(GamePos[1] == 'L' && robotPos == ROBOT_POS_ONE_STR){
-				// If the Color is on the Left Side and we are in POS 1
-				
-				// Drive past the Base
-				resetEncoder();
-				while(true){
-					// The 140in is to the edge of the Switch, That is from the Wall to the Line!
-					if(getDriveEncoder() <= baseLine ){ 
-						MyDrive.drive(0.4, 0, 0);
-					}
-					else {
-						MyDrive.drive(0, 0, 0);
-						break;
-					}
-				}
-				
-				// Turn Left to 45deg
-				zeroVGyro();
-				while(true){
-					// The 140in is to the edge of the Switch, That is from the Wall to the Line!
-					if(getVGyro() <= 45 ){ 
-						MyDrive.drive(0, 0.4, 0);
-					}
-					else {
-						MyDrive.drive(0, 0, 0);
-						break;
-					}
-				}
-				zeroVGyro();
-				
-			}
-			
-		}
-		
-		// R Swtich
-		else if(autoSelect == SwitchRight){
-			// Be sure to Check the Color of the Scale or Switch before running and the Placement.
-			
-			if(GamePos[1] == 'R' && robotPos == ROBOT_POS_THREE_STR){
-				// If the Color is on the Right Side and we are in POS 3.
-				
-			}
-			
-			
-		}
-		
-		// LR, Drive Past the Base Line
-		else if(autoSelect == BaseLine){	
-			// Conver this section of the Code for the Auto into 
-			//  Seperate Command Class for Auto Chooser Object Selection.
-			while(true){
-				// The 140in is to the edge of the Switch, That is from the Wall to the Line!
-				if(getDriveEncoder() <= baseLine ){ 
-					MyDrive.drive(0.5, 0, 0);
-				}
-				else {
-					MyDrive.drive(0, 0, 0);
-					break;
-				}
-			}
-			
-		}
-		
 		// Schedule the autonomous command
-		if (autonomousCommand != null)
-			//autonomousCommand.start();
+		//if (autonomousCommand != null) {
+		//	autonomousCommand.start();
+		//}
+		Robot.chooser.getSelected().start();
 		SmartDashboard.putBoolean("AutoInitComplete", true);
 	}
 
@@ -442,47 +356,47 @@ public class Robot extends TimedRobot {
 			}
 		
 		// Operator
-		// This is to control the Lift action and it's motor+break.
+		// This is to control the Lift action and it's MOTOR.
 			if(joystick1.getRawButton(3)){
 				// Up
-				System.out.println("UP");
-				LiftMotor.setSpeed(0.9);
+				System.out.println("CA: UP");
+				clawMotor.setSpeed(0.9);
 			}
 			else if(joystick1.getRawButton(4)) {
 				// Down
-				System.out.println("DOWN");
-				LiftMotor.setSpeed(-0.6);
+				System.out.println("CA: DOWN");
+				clawMotor.setSpeed(-0.6);
 			}
 			else {
-				LiftMotor.stopMotor();
+				clawMotor.stopMotor();
 			}
 
 		// Operator
-		// This is for the Arm Lift Control
-			double ArmValue = joystick1.getRawAxis(1);
-			System.out.println("L: "+ArmValue);
-			if(ArmValue > 0.4){
+		// This is to control the Lift action and it's MOTOR + BREAK.
+			double ControllerValue = joystick1.getRawAxis(1);
+			System.out.println("LV: "+ControllerValue);
+			if(ControllerValue > 0.4){
 				// Up
 				if(encoderLift.getDistance() <= MaxHightEncoder) {
 					// Past Max Height
 					System.out.println("L: Max Height");
-					ArmMotor.setSpeed(0);
+					liftMotor.setSpeed(0);
 				}
 				else {
 					// UP
 					System.out.println("L: Up");
 					solenoidUpdate(false, breakOn, breakOff);
-					ArmMotor.setSpeed(0.7);
+					liftMotor.setSpeed(0.7);
 				}
 			}
-			else if(ArmValue < -0.4) {
+			else if(ControllerValue < -0.4) {
 				// Down
 				// Keep in mind the Lower Limit Switch is Always True till the Arm Comes down and interupts the Light, Makes it False.
 				if(lowerLimit.get()){
 					System.out.println("L: Down");
 					// Light is on by Default (Reflecting and getting Light Normal, When the Arm is not down.)
 					solenoidUpdate(false, breakOn, breakOff);
-					ArmMotor.setSpeed(-0.7);
+					liftMotor.setSpeed(-0.7);
 				}
 				else {
 					// Auto Limit and Reset for Calibration of the Lift Sensor
@@ -492,8 +406,7 @@ public class Robot extends TimedRobot {
 			}
 			else {
 				solenoidUpdate(true, breakOn, breakOff);
-				System.out.println("L: Normal");
-				ArmMotor.stopMotor();
+				liftMotor.stopMotor();
 			}
 			
 		Scheduler.getInstance().run();
@@ -502,14 +415,14 @@ public class Robot extends TimedRobot {
 	
 	
 	public double getGyro(){
-		return this.gyroSensor.getAngle();
+		return Robot.gyroSensor.getAngle();
 	}
 	public double getVGyro(){
-		return ( this.gyroSensor.getAngle() + this.VirtualOffset);
+		return ( Robot.gyroSensor.getAngle() + this.VirtualOffset);
 	}
 	
 	public void zeroGyro(){
-		this.gyroSensor.reset();
+		Robot.gyroSensor.reset();
 	}
 	public void zeroVGyro(){
 		this.VirtualOffset = -getGyro();

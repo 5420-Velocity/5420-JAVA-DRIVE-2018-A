@@ -84,11 +84,11 @@ public class MecDrive {
 		
 		if (this.gyroSensor == null){
 			this.DriveControl.driveCartesian(Power, Crab, Turn, 0);
-			System.out.println("No Gyro");
+			//System.out.println("No Gyro");
 		}
 		else {
 			this.DriveControl.driveCartesian(Power, Crab, Turn, this.gyroSensor.getAngle());
-			System.out.println("Gyro");
+			//System.out.println("Gyro");
 		}
 	}
 	
