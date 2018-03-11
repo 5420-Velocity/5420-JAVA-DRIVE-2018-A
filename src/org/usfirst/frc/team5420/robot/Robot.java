@@ -24,6 +24,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.Ultrasonic;
 import edu.wpi.first.wpilibj.VictorSP;
 import edu.wpi.first.wpilibj.command.Command;
+import edu.wpi.first.wpilibj.command.CommandGroup;
 import edu.wpi.first.wpilibj.command.Scheduler;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -59,6 +60,8 @@ public class Robot extends TimedRobot {
 	public static final int ROBOT_POS_THREE = 3; // Right
 	public static final String ROBOT_POS_THREE_STR = "Right"; // Right
 	
+	public static CommandGroup autoCommand;
+	
 	// Using the 500 per 4FT
 	public static final int EncoderFT = 125;
 	public static final int EncoderIN = EncoderFT/12;
@@ -69,8 +72,8 @@ public class Robot extends TimedRobot {
 	public static  DriverStation.Alliance color;
 	public double time;
 	public static OI jio;
-	Command autonomousCommand;
-	private static SendableChooser<Command> chooser = new SendableChooser<>();
+	String autonomousCommand;
+	private static SendableChooser<String> chooser = new SendableChooser<>();
 	public static SendableChooser<String> robotPos = new SendableChooser<>();
 	
 	// Setup of the Devices in the Code.
@@ -189,9 +192,9 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putData("Position", robotPos);
 		
 		//chooser.addObject(name, object);
-		chooser.addDefault("No Auto Selected", new NoAuto());
-		chooser.addObject("Base Line Auto", new AutoBaseline(MyDrive, gyroSensor, encoder0, encoder1, EncoderIN) );
-		chooser.addObject("Auto Left", new AutoLeft(MyDrive, gyroSensor, encoder0, encoder1, EncoderIN) );
+		chooser.addDefault("No Auto Selected", NoAuto);
+		chooser.addObject("Base Line Auto", BaseLine);
+		chooser.addObject("Auto Left", SwitchLeft );
 		
 		//chooser.addObject("Center Auto", CenterSwitchAuto);
 		//chooser.addObject("Scale Auto", ScaleAuto);
@@ -280,7 +283,7 @@ public class Robot extends TimedRobot {
 		
 		compressor0.setClosedLoopControl(true);
 		autonomousCommand = Robot.chooser.getSelected();
-		SmartDashboard.putString("autonomousCommand", autonomousCommand.getName());
+		SmartDashboard.putString("autonomousCommand", autonomousCommand);
 		this.GamePos = DriverStation.getInstance().getGameSpecificMessage().toCharArray();
 		/**
 		 * DriverStation.getInstance().getGameSpecificMessage() returns the Data of the Left or Right 
@@ -292,11 +295,25 @@ public class Robot extends TimedRobot {
 		 * if( GamePos[2] == 'L' ) // The Far Switch Left Side is your Color.
 		 */
 		
+		if(autonomousCommand == NoAuto){
+			// Do Nothing.
+		}
+		else if(autonomousCommand == BaseLine){
+			autoCommand = new CommandGroup();
+			autoCommand.addSequential(new AutoBaseline(MyDrive, gyroSensor, encoder0, encoder1, EncoderIN));
+			autoCommand.start();
+		}
+		else if(autonomousCommand == SwitchLeft){
+			autoCommand = new CommandGroup();
+			autoCommand.addSequential(new AutoLeft(MyDrive, gyroSensor, encoder0, encoder1, EncoderIN));
+			autoCommand.start();
+		}
+		
+		
 		// Schedule the autonomous command
 		//if (autonomousCommand != null) {
 		//	autonomousCommand.start();
 		//}
-		Robot.chooser.getSelected().start();
 		SmartDashboard.putBoolean("AutoInitComplete", true);
 	}
 
