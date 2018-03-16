@@ -23,17 +23,13 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.Ultrasonic;
 import edu.wpi.first.wpilibj.VictorSP;
-import edu.wpi.first.wpilibj.command.Command;
+import edu.wpi.first.wpilibj.command.CommandGroup;
 import edu.wpi.first.wpilibj.command.Scheduler;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
-import java.util.concurrent.TimeUnit;
-
 import org.usfirst.frc.team5420.robot.MecDrive;
 import org.usfirst.frc.team5420.robot.OI;
-import org.usfirst.frc.team5420.robot.commands.ExampleCommand;
-import org.usfirst.frc.team5420.robot.subsystems.ExampleSubsystem;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -45,9 +41,7 @@ import org.usfirst.frc.team5420.robot.subsystems.ExampleSubsystem;
 public class Robot extends TimedRobot {
 	
 	public static final String ScaleAuto = "DoScaleAuto";
-	public static final String CenterSwitchAuto = "CenterAuto";
-	public static final String SwitchLeft = "LeftAuto";
-	public static final String SwitchRight = "RightAuto";
+	public static final String Switch = "SwitchAuto";
 	public static final String NoAuto = "NoAuto";
 	public static final String BaseLine = "baseLine";
 	
@@ -137,10 +131,8 @@ public class Robot extends TimedRobot {
 		
 		//chooser.addObject(name, object);
 		chooser.addDefault("No Auto Selected", NoAuto);
-		chooser.addObject("Center Auto", CenterSwitchAuto);
 		chooser.addObject("Scale Auto", ScaleAuto);
-		chooser.addObject("Left Switch Auto", SwitchLeft);
-		chooser.addObject("Right Switch Auto", SwitchRight);
+		chooser.addObject("Switch Auto", Switch);
 		chooser.addObject("Base Line Auto", BaseLine);
 		SmartDashboard.putData("AutoChoices", chooser);
 				
@@ -194,7 +186,7 @@ public class Robot extends TimedRobot {
 		MyDrive = new MecDrive(motorFL, motorFR, motorRL, motorRR);
 		//MyDrive.setGyro(gyroSensor); // Send the Gyro Object
 		MyDrive.invert(true);
-		MyDrive.setDeadband(0.12);
+		MyDrive.setDeadband(0.12); // The Zone to Ignore
 		MyDrive.enableDeadband();
 		
 		pdp = new PowerDistributionPanel();
@@ -263,27 +255,31 @@ public class Robot extends TimedRobot {
 	 * chooser code above (like the commented example) or additional comparisons
 	 * to the switch structure below with additional strings & commands.
 	 */
+	/**
+	 * This Section of the Code (autonomousInit) is just going to be doing some
+	 *  large sections of if and self with some switch cases to make the auto
+	 *  select the correct program to run depending on the ENV made on the feild.
+	 */
 	@Override
 	public void autonomousInit() {
 		int baseLine = (128*EncoderIN);
 		solenoidUpdate(clawState, solenoid0, solenoid1); // Set the init State, Set asap.
 		SmartDashboard.putBoolean("ClawOpenSignal", clawState);
 		
-		// Auto Timer Delay
-		if( SmartDashboard.getNumber("AutoDelay", 0) != 0 ){
-			// Get the Timer Delay from the Dashboard and Delay the Auto.
-			Timer.delay( SmartDashboard.getNumber("AutoDelay", 0) );
-		}
-		
 		timer.reset();
 		timer.start();
+		
+		CommandGroup autoRuntime = new CommandGroup();
 		compressor0.setClosedLoopControl(true);
 		autonomousCommand = this.chooser.getSelected();
 		SmartDashboard.putString("AutoSelect", autonomousCommand);
 		String autoSelect = autonomousCommand;
-		String robotPos = this.robotPos.getSelected();
+		String robotPos = Robot.robotPos.getSelected();
 		
-		this.GamePos = DriverStation.getInstance().getGameSpecificMessage().toCharArray();
+		// Setup the Static Systems and their Dependent Resources.
+		new DriveCTRL(MyDrive, encoder0, encoder1);
+		new TurnCTRL(MyDrive, gyroSensor);
+		
 		/**
 		 * DriverStation.getInstance().getGameSpecificMessage() returns the Data of the Left or Right 
 		 *      Direction of your Color on the Switch Scale Switch.
@@ -293,96 +289,119 @@ public class Robot extends TimedRobot {
 		 * if( GamePos[1] == 'L' ) // Scale, Center Field, Left Side
 		 * if( GamePos[2] == 'L' ) // The Far Switch Left Side is your Color.
 		 */
+		this.GamePos = DriverStation.getInstance().getGameSpecificMessage().toCharArray();
+
+		// Add the Timer Delay Action/Command
+		autoRuntime.addSequential(new AutoDelay(SmartDashboard.getNumber("AutoDelay", 0)));
 		
+
+		//   +-+-+ +-+-+-+-+
+		//   |N|O| |A|U|T|O|
+		//   +-+-+ +-+-+-+-+
 		if(autonomousCommand == NoAuto){
-			System.out.println("No Auto Selected!");
+			System.out.println("HUMAN: :'( Told not to do an Auto. [NoAuto]");
 			encoder0.reset();
 		}
 		
-		// LR, Auto for the Scale
+
+		//   +-+-+-+-+-+
+		//   |S|C|A|L|E|
+		//   +-+-+-+-+-+
+		// Auto for the Scale
+		// TODO: Make SCALE auto.
 		else if(autoSelect == ScaleAuto){
-			// Be sure to Check the Color of the Scale or Switch before running and the Placement.
-		}
-		
-		// C, Swtich
-		else if(autoSelect == CenterSwitchAuto){
-			// Be sure to Check the Color of the Scale or Switch before running and the Placement.
-			if(robotPos == ROBOT_POS_THREE_STR){
-				
+			// If you are in POS Tne or POS Two
+			if(robotPos == ROBOT_POS_ONE_STR || robotPos == ROBOT_POS_THREE_STR){
+				 
+			}
+			else {
+				System.out.println("HUMAN: Not in Left or Right Slot, Can't Auto!. [Scale>Center]");
 			}
 			
+			
+			
 		}
 		
-		// L Swtich
-		else if(autoSelect == SwitchLeft){
+
+		//   +-+-+-+-+-+-+
+		//   |S|W|I|T|C|H|
+		//   +-+-+-+-+-+-+
+		// Swtich Auto
+		else if(autoSelect == Switch){
 			
+			//   +-+-+-+-+
+			//   |L|E|F|T|
+			//   +-+-+-+-+
+			
+			// If our Color is on the LEFT side and we are in POS 1 (Right Side of the Feild)
 			// Be sure to Check the Color of the Scale or Switch before running and the Placement.
 			if(GamePos[1] == 'L' && robotPos == ROBOT_POS_ONE_STR){
-				// If the Color is on the Left Side and we are in POS 1
 				
-				// Drive past the Base
-				resetEncoder();
-				while(true){
-					// The 140in is to the edge of the Switch, That is from the Wall to the Line!
-					if(getDriveEncoder() <= baseLine ){ 
-						MyDrive.drive(0.4, 0, 0);
-					}
-					else {
-						MyDrive.drive(0, 0, 0);
-						break;
-					}
-				}
-				
-				// Turn Left to 45deg
-				zeroVGyro();
-				while(true){
-					// The 140in is to the edge of the Switch, That is from the Wall to the Line!
-					if(getVGyro() <= 45 ){ 
-						MyDrive.drive(0, 0.4, 0);
-					}
-					else {
-						MyDrive.drive(0, 0, 0);
-						break;
-					}
-				}
-				zeroVGyro();
+				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
+				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+				autoRuntime.addSequential( new TurnCTRL(0.5, 45) ); // Turn to the Right
+				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 				
 			}
 			
-		}
-		
-		// R Swtich
-		else if(autoSelect == SwitchRight){
+	
+			//   +-+-+-+-+-+
+			//   |R|I|G|H|T|
+			//   +-+-+-+-+-+
+
+			// If our Color is on the RIGHT side and we are in POS 3 (Right Side of the Feild)
 			// Be sure to Check the Color of the Scale or Switch before running and the Placement.
-			
-			if(GamePos[1] == 'R' && robotPos == ROBOT_POS_THREE_STR){
-				// If the Color is on the Right Side and we are in POS 3.
+			else if(GamePos[1] == 'R' && robotPos == ROBOT_POS_THREE_STR){
+				
+				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
+				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+				autoRuntime.addSequential( new TurnCTRL(0.5, -45) ); // Turn to the Left
+				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 				
 			}
 			
-			
-		}
-		
-		// LR, Drive Past the Base Line
-		else if(autoSelect == BaseLine){	
-			// Conver this section of the Code for the Auto into 
-			//  Seperate Command Class for Auto Chooser Object Selection.
-			while(true){
-				// The 140in is to the edge of the Switch, That is from the Wall to the Line!
-				if(getDriveEncoder() <= baseLine ){ 
-					MyDrive.drive(0.5, 0, 0);
+			// CENTER AUTO, Dual Auto Switch Case
+			// TODO: Create Cetner Auto Options and the Controls
+			else if(robotPos == ROBOT_POS_TWO_STR){
+				
+				if(GamePos[1] == 'L'){
+					// If our Color in on the left side.
+					
 				}
 				else {
-					MyDrive.drive(0, 0, 0);
-					break;
+					// If out Color is on the right side.
+					
 				}
+				
+			}
+
+			
+		} // End "Switch" Selection Process.
+		
+
+		//   +-+-+-+-+-+-+-+-+
+		//   |B|A|S|E|L|I|N|E|
+		//   +-+-+-+-+-+-+-+-+
+		// Drive Past the Base Line
+		else if(autoSelect == BaseLine){
+			
+			// Drive past the Baseline if not Center
+			if(robotPos == ROBOT_POS_ONE_STR || robotPos == ROBOT_POS_THREE_STR){
+				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) );
 			}
 			
-		}
+			else if ( robotPos == ROBOT_POS_TWO_STR){
+				System.out.println("HUMAN: Not in Left or Right Slot, Can't Auto!. [Baseline>Center]");
+			}
+			
+			
+		} // End "Baseline" Selection Process.
+		
+		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		
 		// Schedule the autonomous command
-		if (autonomousCommand != null)
-			//autonomousCommand.start();
+		if (autoRuntime != null)
+			autoRuntime.start();
 		SmartDashboard.putBoolean("AutoInitComplete", true);
 	}
 
