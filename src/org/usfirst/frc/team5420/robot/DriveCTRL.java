@@ -71,6 +71,7 @@ public class DriveCTRL extends Command {
 	protected void execute() {
 		
 		// Do the Drive Operation.
+		// TODO: Add PID to the Robot for Better and efficient driving via Auto.
 		if(getDriveEncoder() <= this.DriveDistance ){ 
 			DriveCTRL.LocalDrive.drive(this.Power, this.Turn, this.Crab);
 		}
@@ -100,6 +101,7 @@ public class DriveCTRL extends Command {
 	}
 	
 	// Get Both Encoders and Read to get the Max Encoder Value from them.
+	// TODO: May have to get the ABS of both values then get the Max since MecDrive does funky driving (Crab: Left, Right).
 	public int getDriveEncoder(){
 		return (int) Math.max(
 			DriveCTRL.EncoderLEFT.getDistance(),

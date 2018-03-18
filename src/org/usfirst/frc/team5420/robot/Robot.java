@@ -41,9 +41,10 @@ import org.usfirst.frc.team5420.robot.OI;
 public class Robot extends TimedRobot {
 	
 	public static final String ScaleAuto = "DoScaleAuto";
-	public static final String Switch = "SwitchAuto";
+	public static final String SwitchAuto = "SwitchAuto";
 	public static final String NoAuto = "NoAuto";
 	public static final String BaseLine = "baseLine";
+	public static final String ScaleSwitchAuto = "ScaleSwitchAuto";
 	
 	public static final int ROBOT_POS_ONE = 1; // Left
 	public static final String ROBOT_POS_ONE_STR = "Left"; // Left
@@ -87,6 +88,9 @@ public class Robot extends TimedRobot {
 	
 	public static Joystick joystick0, joystick1;
 	public static VictorSP LiftMotor, ArmMotor;
+	
+	public static SolenoidMap ClawMap = new SolenoidMap(solenoid0, solenoid1); // The Claw Solenoids
+	public static SolenoidMap BreakMap = new SolenoidMap( breakOn, breakOff ); // The Break Solenoids
 	
 	// Motor Setup
 	public VictorSP motorFL, motorRL, motorRR, motorFR;
@@ -132,8 +136,9 @@ public class Robot extends TimedRobot {
 		//chooser.addObject(name, object);
 		chooser.addDefault("No Auto Selected", NoAuto);
 		chooser.addObject("Scale Auto", ScaleAuto);
-		chooser.addObject("Switch Auto", Switch);
+		chooser.addObject("Switch Auto", SwitchAuto);
 		chooser.addObject("Base Line Auto", BaseLine);
+		chooser.addObject("Scale then Switch", ScaleSwitchAuto);
 		SmartDashboard.putData("AutoChoices", chooser);
 				
 		robotPos.addObject("Left (1)", ROBOT_POS_ONE_STR);
@@ -160,7 +165,7 @@ public class Robot extends TimedRobot {
 		breakOn = new Solenoid(3); // Pull the Cylinder Close, Break on 
 		breakOff = new Solenoid(4); // Push the Cylinder Open, Break off
 		
-		liftSensor = new Ultrasonic(2,3); // creates the ultra object andassigns ultra to be an ultrasonic sensor which uses DigitalOutput 1 for 
+		//liftSensor = new Ultrasonic(2,3); // creates the ultra object andassigns ultra to be an ultrasonic sensor which uses DigitalOutput 1 for 
 		
 		encoder0 = new Encoder(4,5, true, Encoder.EncodingType.k4X); // Left DIO, DIO, Reversed Count Direction since it is the Right Side
 		encoder1 = new Encoder(6,7, false, Encoder.EncodingType.k4X); // Right DIO, DIO
@@ -171,7 +176,7 @@ public class Robot extends TimedRobot {
 		joystick1 = new Joystick(1); //Controller Two USB
 		
 		lowerLimit = new DigitalInput(17); // DIO
-		//UpperLimit = new DigitalInput(1); // DIO
+		upperLimit = new DigitalInput(16); // DIO
 		CloseMiss = new DigitalInput(25); // Disableed, Used the same Interface as the Encoder
 		
 		LiftMotor = new VictorSP(2); // PWM
@@ -263,7 +268,8 @@ public class Robot extends TimedRobot {
 	@Override
 	public void autonomousInit() {
 		int baseLine = (128*EncoderIN);
-		solenoidUpdate(clawState, solenoid0, solenoid1); // Set the init State, Set asap.
+		this.ClawMap.set(clawState); // Set the init State, Set asap.
+		
 		SmartDashboard.putBoolean("ClawOpenSignal", clawState);
 		
 		timer.reset();
@@ -279,6 +285,8 @@ public class Robot extends TimedRobot {
 		// Setup the Static Systems and their Dependent Resources.
 		new DriveCTRL(MyDrive, encoder0, encoder1);
 		new TurnCTRL(MyDrive, gyroSensor);
+		new ArmCTRL(ArmMotor, encoderArm, lowerLimit);
+		new LiftCTRL(LiftMotor, encoderLift, BreakMap);
 		
 		/**
 		 * DriverStation.getInstance().getGameSpecificMessage() returns the Data of the Left or Right 
@@ -289,10 +297,51 @@ public class Robot extends TimedRobot {
 		 * if( GamePos[1] == 'L' ) // Scale, Center Field, Left Side
 		 * if( GamePos[2] == 'L' ) // The Far Switch Left Side is your Color.
 		 */
-		this.GamePos = DriverStation.getInstance().getGameSpecificMessage().toCharArray();
+		this.GamePos = DriverStation.getInstance().getGameSpecificMessage().toUpperCase().toCharArray();
 
 		// Add the Timer Delay Action/Command
-		autoRuntime.addSequential(new AutoDelay(SmartDashboard.getNumber("AutoDelay", 0)));
+		autoRuntime.addSequential( new AutoDelay(SmartDashboard.getNumber("AutoDelay", 0)) );
+		
+		
+
+		//   +-+-+-+ +-+-+-+-+
+		//   |P|R|E| |E|X|E|C|
+		//   +-+-+-+ +-+-+-+-+
+		// This is used to find out if the scale is our color
+		//  then to see if the switch is out color then RESET the auto Accordingly.
+		if( autonomousCommand == ScaleSwitchAuto ){
+			System.out.println("AutoDecisioning Auto...");
+			
+			// Left Side
+			if(robotPos == ROBOT_POS_ONE_STR){
+				// Scale Detection
+				if(GamePos[2] == 'L'){
+					autonomousCommand = ScaleAuto;
+				}
+				
+				// Switch Detection
+				else if( GamePos[1] == 'L' ){
+					autonomousCommand = SwitchAuto;
+				}
+			}
+			else if (robotPos == ROBOT_POS_TWO_STR) {
+				// Do nothing.
+				autonomousCommand = NoAuto;
+			}
+			
+			// Right Side
+			else if (robotPos == ROBOT_POS_THREE_STR) {
+				// Scale Detection
+				if(GamePos[2] == 'R'){
+					autonomousCommand = ScaleAuto;
+				}
+				
+				// Switch Detection
+				else if( GamePos[1] == 'R' ){
+					autonomousCommand = SwitchAuto;
+				}
+			}
+		} // End "ScaleSwitchAuto" Selection Process.
 		
 
 		//   +-+-+ +-+-+-+-+
@@ -301,7 +350,8 @@ public class Robot extends TimedRobot {
 		if(autonomousCommand == NoAuto){
 			System.out.println("HUMAN: :'( Told not to do an Auto. [NoAuto]");
 			encoder0.reset();
-		}
+			encoder1.reset();
+		} // End "NoAuto" Selection Process.
 		
 
 		//   +-+-+-+-+-+
@@ -320,14 +370,14 @@ public class Robot extends TimedRobot {
 			
 			
 			
-		}
+		} // End "ScaleAuto" Selection Process.
 		
 
 		//   +-+-+-+-+-+-+
 		//   |S|W|I|T|C|H|
 		//   +-+-+-+-+-+-+
 		// Swtich Auto
-		else if(autoSelect == Switch){
+		else if(autoSelect == SwitchAuto){
 			
 			//   +-+-+-+-+
 			//   |L|E|F|T|
@@ -341,7 +391,11 @@ public class Robot extends TimedRobot {
 				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 				autoRuntime.addSequential( new TurnCTRL(0.5, 45) ); // Turn to the Right
 				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				
+				autoRuntime.addSequential( new LiftCTRL(0.5, 3000) ); // Lift arm upto the target 3000
+				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 500) ); // Drive Forward to the Switch
+				autoRuntime.addSequential( new SolenoidCTRL(ClawMap, true) ); // Change State
+				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, -500) ); // Drive Backwards from the Switch
 			}
 			
 	
@@ -357,7 +411,11 @@ public class Robot extends TimedRobot {
 				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 				autoRuntime.addSequential( new TurnCTRL(0.5, -45) ); // Turn to the Left
 				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				
+				autoRuntime.addSequential( new LiftCTRL(0.5, 3000) ); // Lift arm upto the target 3000
+				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 500) ); // Drive Forward to the Switch
+				autoRuntime.addSequential( new SolenoidCTRL(ClawMap, true) ); // Change State
+				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, -500) ); // Drive Backwards from the Switch
 			}
 			
 			// CENTER AUTO, Dual Auto Switch Case
@@ -366,15 +424,24 @@ public class Robot extends TimedRobot {
 				
 				if(GamePos[1] == 'L'){
 					// If our Color in on the left side.
-					
+					autoRuntime.addSequential( new DriveCTRL(0, 0, 0.5, -40) ); // Crab Left, Color is on the Left
+					autoRuntime.addSequential( new LiftCTRL(0.5, 3000) ); // Lift arm upto the target 3000
+					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 500) ); // Drive Forward to the Switch
+					autoRuntime.addSequential( new SolenoidCTRL(ClawMap, true) ); // Change State
+					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, -500) ); // Drive Backwards from the Switch
 				}
 				else {
 					// If out Color is on the right side.
-					
+					autoRuntime.addSequential( new DriveCTRL(0, 0, 0.5, -80) ); // Crab Left, Color is on the Right
+					autoRuntime.addSequential( new LiftCTRL(0.5, 3000) ); // Lift arm upto the target 3000
+					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 500) ); // Drive Forward to the Switch
+					autoRuntime.addSequential( new SolenoidCTRL(ClawMap, true) ); // Change State
+					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, -500) ); // Drive Backwards from the Switch
 				}
 				
 			}
-
 			
 		} // End "Switch" Selection Process.
 		
