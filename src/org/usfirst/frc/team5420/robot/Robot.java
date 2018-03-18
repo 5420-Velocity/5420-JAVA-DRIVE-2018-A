@@ -78,7 +78,7 @@ public class Robot extends TimedRobot {
 	public static  Solenoid solenoid0, solenoid1;
 	public static  Solenoid breakOn, breakOff;
 	
-	public static Ultrasonic liftSensor; 
+	public static Ultrasonic distSensor; 
 	public static boolean AutoDelayFinished = false;
 	
 	public static Encoder encoder0, encoder1;
@@ -165,7 +165,7 @@ public class Robot extends TimedRobot {
 		breakOn = new Solenoid(3); // Pull the Cylinder Close, Break on 
 		breakOff = new Solenoid(4); // Push the Cylinder Open, Break off
 		
-		//liftSensor = new Ultrasonic(2,3); // creates the ultra object andassigns ultra to be an ultrasonic sensor which uses DigitalOutput 1 for 
+		distSensor = new Ultrasonic(2,3); // creates the ultra object andassigns ultra to be an ultrasonic sensor which uses DigitalOutput 1 for 
 		
 		encoder0 = new Encoder(4,5, true, Encoder.EncodingType.k4X); // Left DIO, DIO, Reversed Count Direction since it is the Right Side
 		encoder1 = new Encoder(6,7, false, Encoder.EncodingType.k4X); // Right DIO, DIO
