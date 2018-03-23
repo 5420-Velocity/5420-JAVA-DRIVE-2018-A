@@ -54,14 +54,9 @@ public class DriveCTRL extends Command {
 	
 	@Override
 	public void initialize(){
-		
-	}
-	
-	@Override
-	public void start(){
 		// Setup the Safety Time.
 			Calendar calculateDate = GregorianCalendar.getInstance();
-			calculateDate.add(GregorianCalendar.SECOND, 2); // Time to Check the Encoder Distance is not Zero
+			calculateDate.add(GregorianCalendar.SECOND, (int) 2); // Time to Check the Encoder Distance is not Zero
 			EStopEncoderTime = calculateDate.getTime();
 		
 		resetEncoder();
@@ -86,7 +81,7 @@ public class DriveCTRL extends Command {
 		// Do the Safe Check to see if the Encoders are doing their thing or not after x seconds
 		if( new Date().after(EStopEncoderTime) ) {
 			// If the Encoder is not Past 10 ticks.
-			if( getDriveEncoder() <= 10 ){
+			if( Math.abs(getDriveEncoder()) <= 10 ){
 				System.err.println("WARN:    Encoder Timeout");
 				DriveCTRL.LocalDrive.drive(0, 0, 0);
 				this.isDone = true;

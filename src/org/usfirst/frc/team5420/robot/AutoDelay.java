@@ -22,16 +22,16 @@ public class AutoDelay extends Command {
 	
 	
 	@Override
-	public void start(){
+	public void initialize(){
 		Calendar calculateDate = GregorianCalendar.getInstance();
-		calculateDate.add(GregorianCalendar.MILLISECOND, this.delayTime); // Time to Check the Encoder Distance is not Zero
+		calculateDate.add(GregorianCalendar.MILLISECOND, (int)this.delayTime); // Time to Check the Encoder Distance is not Zero
 		EStopEncoderTime = calculateDate.getTime();
 	}
 	
 	@Override
 	protected void execute() {
 		// Not the Best but is the working and best solution.
-		if( new Date().after(EStopEncoderTime) ) {
+		if( new Date().after(this.EStopEncoderTime) ) {
 			this.isDone = true;
 		}
 	}

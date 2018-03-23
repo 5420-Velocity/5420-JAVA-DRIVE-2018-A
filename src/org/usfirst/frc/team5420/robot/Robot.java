@@ -83,14 +83,16 @@ public class Robot extends TimedRobot {
 	
 	public static Encoder encoder0, encoder1;
 	public static Encoder encoderArm, encoderLift;
+	// The EncoderMap has controls for Virtual Offsets, Needed since it Starts Mid Mast.
+	public static EncoderMap encoderLiftMap; // Encoder Map Class, Has offset and the Get Controls. 
 	public static DigitalInput upperLimit, lowerLimit;
 	public static DigitalInput CloseMiss;
 	
 	public static Joystick joystick0, joystick1;
 	public static VictorSP LiftMotor, ArmMotor;
 	
-	public static SolenoidMap ClawMap = new SolenoidMap(solenoid0, solenoid1); // The Claw Solenoids
-	public static SolenoidMap BreakMap = new SolenoidMap( breakOn, breakOff ); // The Break Solenoids
+	public static SolenoidMap ClawMap; // The Claw Solenoids
+	public static SolenoidMap BreakMap; // The Break Solenoids
 	
 	// Motor Setup
 	public VictorSP motorFL, motorRL, motorRR, motorFR;
@@ -165,12 +167,20 @@ public class Robot extends TimedRobot {
 		breakOn = new Solenoid(3); // Pull the Cylinder Close, Break on 
 		breakOff = new Solenoid(4); // Push the Cylinder Open, Break off
 		
+		ClawMap = new SolenoidMap(solenoid0, solenoid1); // The Claw Solenoids
+		BreakMap = new SolenoidMap( breakOn, breakOff ); // The Break Solenoids
+		
 		distSensor = new Ultrasonic(2,3); // creates the ultra object andassigns ultra to be an ultrasonic sensor which uses DigitalOutput 1 for 
 		
 		encoder0 = new Encoder(4,5, true, Encoder.EncodingType.k4X); // Left DIO, DIO, Reversed Count Direction since it is the Right Side
 		encoder1 = new Encoder(6,7, false, Encoder.EncodingType.k4X); // Right DIO, DIO
-		encoderLift = new Encoder(10,11, false, Encoder.EncodingType.k4X); // Lift DIO, DIO
-		encoderArm = new Encoder(12,13, true, Encoder.EncodingType.k4X); // Arm DIO, DIO
+		
+		encoderArm = new Encoder(10,11, true, Encoder.EncodingType.k4X); // Lift DIO, DIO
+		encoderLift = new Encoder(12,13, true, Encoder.EncodingType.k4X); // Arm DIO, DIO
+		
+		encoderLiftMap = new EncoderMap(encoderLift); // The Encoder Offset Control
+		encoderLiftMap.setOffset(5000); // Set the Encoder offset for Mid-Mast
+		
 		
 		joystick0 = new Joystick(0); //Controller One USB
 		joystick1 = new Joystick(1); //Controller Two USB
@@ -246,6 +256,7 @@ public class Robot extends TimedRobot {
 
 	@Override
 	public void disabledPeriodic() {
+		MyDrive.stop(); // Send Stop Message to all drive motors during Stop Command.
 		Scheduler.getInstance().run();
 	}
 
@@ -268,7 +279,7 @@ public class Robot extends TimedRobot {
 	@Override
 	public void autonomousInit() {
 		int baseLine = (128*EncoderIN);
-		this.ClawMap.set(clawState); // Set the init State, Set asap.
+		Robot.ClawMap.set(clawState); // Set the init State, Set asap.
 		
 		SmartDashboard.putBoolean("ClawOpenSignal", clawState);
 		
@@ -285,8 +296,8 @@ public class Robot extends TimedRobot {
 		// Setup the Static Systems and their Dependent Resources.
 		new DriveCTRL(MyDrive, encoder0, encoder1);
 		new TurnCTRL(MyDrive, gyroSensor);
-		new ArmCTRL(ArmMotor, encoderArm, lowerLimit);
-		new LiftCTRL(LiftMotor, encoderLift, BreakMap);
+		new ArmCTRL(LiftMotor, encoderArm, lowerLimit);
+		new LiftCTRL(ArmMotor, encoderLiftMap, BreakMap);
 		
 		/**
 		 * DriverStation.getInstance().getGameSpecificMessage() returns the Data of the Left or Right 
@@ -300,9 +311,11 @@ public class Robot extends TimedRobot {
 		this.GamePos = DriverStation.getInstance().getGameSpecificMessage().toUpperCase().toCharArray();
 
 		// Add the Timer Delay Action/Command
-		autoRuntime.addSequential( new AutoDelay(SmartDashboard.getNumber("AutoDelay", 0)) );
+		autoRuntime.addSequential( new WaitCTRL( (int) SmartDashboard.getNumber("AutoDelay", 0)) );
 		
-		
+		///////////////////////////////////////////////////////////////////
+		/////////////  STAGE 1 ////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////
 
 		//   +-+-+-+ +-+-+-+-+
 		//   |P|R|E| |E|X|E|C|
@@ -310,7 +323,7 @@ public class Robot extends TimedRobot {
 		// This is used to find out if the scale is our color
 		//  then to see if the switch is out color then RESET the auto Accordingly.
 		if( autonomousCommand == ScaleSwitchAuto ){
-			System.out.println("AutoDecisioning Auto...");
+			System.out.println("Auto Decisioning Auto...");
 			
 			// Left Side
 			if(robotPos == ROBOT_POS_ONE_STR){
@@ -324,9 +337,11 @@ public class Robot extends TimedRobot {
 					autonomousCommand = SwitchAuto;
 				}
 			}
+			
 			else if (robotPos == ROBOT_POS_TWO_STR) {
 				// Do nothing.
 				autonomousCommand = NoAuto;
+				log("(CENTER) Robot on the Left, Robot on the Right, Stuck in the Middle with you!");
 			}
 			
 			// Right Side
@@ -341,9 +356,14 @@ public class Robot extends TimedRobot {
 					autonomousCommand = SwitchAuto;
 				}
 			}
+			
+			log("Auto Select: " + autonomousCommand);
 		} // End "ScaleSwitchAuto" Selection Process.
 		
-
+		///////////////////////////////////////////////////////////////////
+		/////////////  STAGE 2 ////////////////////////////////////////////
+		///////////////////////////////////////////////////////////////////
+		
 		//   +-+-+ +-+-+-+-+
 		//   |N|O| |A|U|T|O|
 		//   +-+-+ +-+-+-+-+
@@ -362,9 +382,17 @@ public class Robot extends TimedRobot {
 		else if(autoSelect == ScaleAuto){
 			// If you are in POS Tne or POS Two
 			if(robotPos == ROBOT_POS_ONE_STR || robotPos == ROBOT_POS_THREE_STR){
-				 
+				
+				if(GamePos[1] == 'L') {
+					log("POS 1/3 - Left Color");
+				}
+				else if(GamePos[1] == 'R') {
+					log("POS 1/3 - Right Color");
+				}
+				
 			}
-			else {
+			else if(robotPos == ROBOT_POS_TWO_STR){
+				log("POS 2 - ERROR");
 				System.out.println("HUMAN: Not in Left or Right Slot, Can't Auto!. [Scale>Center]");
 			}
 			
@@ -387,15 +415,18 @@ public class Robot extends TimedRobot {
 			// Be sure to Check the Color of the Scale or Switch before running and the Placement.
 			if(GamePos[1] == 'L' && robotPos == ROBOT_POS_ONE_STR){
 				
-				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
-				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				autoRuntime.addSequential( new TurnCTRL(0.5, 45) ); // Turn to the Right
-				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				autoRuntime.addSequential( new LiftCTRL(0.5, 3000) ); // Lift arm upto the target 3000
-				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 500) ); // Drive Forward to the Switch
-				autoRuntime.addSequential( new SolenoidCTRL(ClawMap, true) ); // Change State
-				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, -500) ); // Drive Backwards from the Switch
+				log("POS 1 - Left Color");
+				
+				//autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
+				//autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+				//autoRuntime.addSequential( new TurnCTRL(0.5, 85) ); // Turn to the Right
+				//autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+				autoRuntime.addSequential( new ArmCTRL(0.8, 380) ); // Lift arm upto the target 100
+				//autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+				//autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 100) ); // Drive Forward to the Switch
+				//autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+				//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
+				autoRuntime.addSequential( new DriveCTRL(-0.5, 0, 0, -50) ); // Drive Backwards from the Switch
 			}
 			
 	
@@ -407,15 +438,17 @@ public class Robot extends TimedRobot {
 			// Be sure to Check the Color of the Scale or Switch before running and the Placement.
 			else if(GamePos[1] == 'R' && robotPos == ROBOT_POS_THREE_STR){
 				
+				log("POS 3 - Right Color");
+				
 				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
 				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 				autoRuntime.addSequential( new TurnCTRL(0.5, -45) ); // Turn to the Left
 				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				autoRuntime.addSequential( new LiftCTRL(0.5, 3000) ); // Lift arm upto the target 3000
-				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 500) ); // Drive Forward to the Switch
-				autoRuntime.addSequential( new SolenoidCTRL(ClawMap, true) ); // Change State
-				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, -500) ); // Drive Backwards from the Switch
+				//autoRuntime.addSequential( new ArmCTRL(0.5, 100) ); // Lift arm upto the target 3000
+				//autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+				//autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 500) ); // Drive Forward to the Switch
+				//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
+				//autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, -500) ); // Drive Backwards from the Switch
 			}
 			
 			// CENTER AUTO, Dual Auto Switch Case
@@ -424,22 +457,42 @@ public class Robot extends TimedRobot {
 				
 				if(GamePos[1] == 'L'){
 					// If our Color in on the left side.
+					
+					log("POS 2 - Left Color");
+					
 					autoRuntime.addSequential( new DriveCTRL(0, 0, 0.5, -40) ); // Crab Left, Color is on the Left
 					autoRuntime.addSequential( new LiftCTRL(0.5, 3000) ); // Lift arm upto the target 3000
 					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 500) ); // Drive Forward to the Switch
-					autoRuntime.addSequential( new SolenoidCTRL(ClawMap, true) ); // Change State
+					autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
 					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, -500) ); // Drive Backwards from the Switch
 				}
-				else {
+				else if(GamePos[1] == 'R') {
 					// If out Color is on the right side.
+					
+					log("POS 2 - Right Color");
+					
 					autoRuntime.addSequential( new DriveCTRL(0, 0, 0.5, -80) ); // Crab Left, Color is on the Right
 					autoRuntime.addSequential( new LiftCTRL(0.5, 3000) ); // Lift arm upto the target 3000
 					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 500) ); // Drive Forward to the Switch
-					autoRuntime.addSequential( new SolenoidCTRL(ClawMap, true) ); // Change State
+					autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
 					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, -500) ); // Drive Backwards from the Switch
 				}
+				
+			}
+			
+			else {
+				// If no Case Matches, Figure out if you can drive the baseline.
+				
+				if(robotPos == ROBOT_POS_ONE_STR || robotPos == ROBOT_POS_THREE_STR){
+					// Run baseline auto to get Points
+					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
+				}
+				else {
+					log("Can not even do a Baseline auto.");
+				}
+				
 				
 			}
 			
@@ -454,15 +507,22 @@ public class Robot extends TimedRobot {
 			
 			// Drive past the Baseline if not Center
 			if(robotPos == ROBOT_POS_ONE_STR || robotPos == ROBOT_POS_THREE_STR){
+				log("POS 1/3 - Unknown Color");
 				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) );
 			}
 			
 			else if ( robotPos == ROBOT_POS_TWO_STR){
+				log("POS 2 - ERRROR");
 				System.out.println("HUMAN: Not in Left or Right Slot, Can't Auto!. [Baseline>Center]");
 			}
 			
 			
 		} // End "Baseline" Selection Process.
+		
+		
+		else {
+			log("Unknown Auto Routine for auto \"" + autoSelect + "\", POS: " + robotPos );
+		}
 		
 		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		
@@ -636,4 +696,9 @@ public class Robot extends TimedRobot {
 		Port1.set(NewState);
 		Port2.set(!NewState);
 	}
+	
+	public void log(String Log){
+		System.out.println(Log);
+	}
+	
 }

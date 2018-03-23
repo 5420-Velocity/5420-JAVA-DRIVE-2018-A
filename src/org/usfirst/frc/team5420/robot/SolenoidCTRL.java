@@ -25,11 +25,6 @@ public class SolenoidCTRL extends Command {
 	}
 	
 	@Override
-	public void start(){
-		// Do not reset the Encoder Since it is all relative to the Physical Robot.
-	}
-	
-	@Override
 	protected void execute() {
 		this.SOLENOID.set(this.newState);
 		this.isDone = true;

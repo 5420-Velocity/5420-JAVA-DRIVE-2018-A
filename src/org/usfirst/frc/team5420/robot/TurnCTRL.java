@@ -50,12 +50,6 @@ public class TurnCTRL extends Command {
 	
 	@Override
 	public void initialize(){
-		
-	}
-	
-	@Override
-	public void start(){
-		
 		zeroVGyro(); // Reset the Gyro to the Virtual Offset.
 	}
 	
@@ -63,7 +57,7 @@ public class TurnCTRL extends Command {
 	protected void execute() {
 		
 		// Do the Drive Operation.
-		if(TurnCTRL.Gyro.getAngle() <= this.degTarget ){ 
+		if(getVGyro() <= this.degTarget ){ 
 			TurnCTRL.LocalDrive.drive(0, this.Turn, 0);
 		}
 		else {
