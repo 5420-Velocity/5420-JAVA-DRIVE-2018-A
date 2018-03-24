@@ -328,12 +328,12 @@ public class Robot extends TimedRobot {
 			// Left Side
 			if(robotPos == ROBOT_POS_ONE_STR){
 				// Scale Detection
-				if(GamePos[2] == 'L'){
+				if(GamePos[1] == 'L'){
 					autonomousCommand = ScaleAuto;
 				}
 				
 				// Switch Detection
-				else if( GamePos[1] == 'L' ){
+				else if( GamePos[0] == 'L' ){
 					autonomousCommand = SwitchAuto;
 				}
 			}
@@ -347,12 +347,12 @@ public class Robot extends TimedRobot {
 			// Right Side
 			else if (robotPos == ROBOT_POS_THREE_STR) {
 				// Scale Detection
-				if(GamePos[2] == 'R'){
+				if(GamePos[1] == 'R'){
 					autonomousCommand = ScaleAuto;
 				}
 				
 				// Switch Detection
-				else if( GamePos[1] == 'R' ){
+				else if( GamePos[0] == 'R' ){
 					autonomousCommand = SwitchAuto;
 				}
 			}
@@ -413,19 +413,19 @@ public class Robot extends TimedRobot {
 			
 			// If our Color is on the LEFT side and we are in POS 1 (Right Side of the Feild)
 			// Be sure to Check the Color of the Scale or Switch before running and the Placement.
-			if(GamePos[1] == 'L' && robotPos == ROBOT_POS_ONE_STR){
+			if(GamePos[0] == 'L' && robotPos == ROBOT_POS_ONE_STR){
 				
 				log("POS 1 - Left Color");
 				
-				//autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
-				//autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				//autoRuntime.addSequential( new TurnCTRL(0.5, 85) ); // Turn to the Right
-				//autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
+				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+				autoRuntime.addSequential( new TurnCTRL(0.5, 85) ); // Turn to the Right
+				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 				autoRuntime.addSequential( new ArmCTRL(0.8, 380) ); // Lift arm upto the target 100
-				//autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				//autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 100) ); // Drive Forward to the Switch
-				//autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
+				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 100) ); // Drive Forward to the Switch
+				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+				autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
 				autoRuntime.addSequential( new DriveCTRL(-0.5, 0, 0, -50) ); // Drive Backwards from the Switch
 			}
 			
@@ -436,26 +436,27 @@ public class Robot extends TimedRobot {
 
 			// If our Color is on the RIGHT side and we are in POS 3 (Right Side of the Feild)
 			// Be sure to Check the Color of the Scale or Switch before running and the Placement.
-			else if(GamePos[1] == 'R' && robotPos == ROBOT_POS_THREE_STR){
+			else if(GamePos[0] == 'R' && robotPos == ROBOT_POS_THREE_STR){
 				
 				log("POS 3 - Right Color");
 				
 				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
 				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				autoRuntime.addSequential( new TurnCTRL(0.5, -45) ); // Turn to the Left
+				autoRuntime.addSequential( new TurnCTRL(0.5, -85) ); // Turn to the Right
 				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				//autoRuntime.addSequential( new ArmCTRL(0.5, 100) ); // Lift arm upto the target 3000
-				//autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				//autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 500) ); // Drive Forward to the Switch
-				//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
-				//autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, -500) ); // Drive Backwards from the Switch
+				autoRuntime.addSequential( new ArmCTRL(0.8, 380) ); // Lift arm upto the target 100
+				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 100) ); // Drive Forward to the Switch
+				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+				autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
+				autoRuntime.addSequential( new DriveCTRL(-0.5, 0, 0, -50) ); // Drive Backwards from the Switch
 			}
 			
 			// CENTER AUTO, Dual Auto Switch Case
 			// TODO: Create Cetner Auto Options and the Controls
 			else if(robotPos == ROBOT_POS_TWO_STR){
 				
-				if(GamePos[1] == 'L'){
+				if(GamePos[0] == 'L'){
 					// If our Color in on the left side.
 					
 					log("POS 2 - Left Color");
@@ -467,7 +468,7 @@ public class Robot extends TimedRobot {
 					autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
 					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, -500) ); // Drive Backwards from the Switch
 				}
-				else if(GamePos[1] == 'R') {
+				else if(GamePos[0] == 'R') {
 					// If out Color is on the right side.
 					
 					log("POS 2 - Right Color");
@@ -525,6 +526,8 @@ public class Robot extends TimedRobot {
 		}
 		
 		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		
+		SmartDashboard.putString("AutoSelect", autonomousCommand);
 		
 		// Schedule the autonomous command
 		if (autoRuntime != null)
@@ -588,11 +591,11 @@ public class Robot extends TimedRobot {
 			}
 		
 		// Operator
-		// This is to control the Lift action and it's motor+break.
+		// This is to control the Lift action and it's motor+break, CUBE HOLDER, ARMS
 			if(joystick1.getRawButton(3)){
 				// Up
 				System.out.println("UP");
-				LiftMotor.setSpeed(0.9);
+				LiftMotor.setSpeed(0.7);
 			}
 			else if(joystick1.getRawButton(4)) {
 				// Down
@@ -604,7 +607,7 @@ public class Robot extends TimedRobot {
 			}
 
 		// Operator
-		// This is for the Arm Lift Control
+		// This is for the Arm Lift Control, LIFT ASSEBILY, THE CART DRIVE
 			double ArmValue = joystick1.getRawAxis(1);
 			System.out.println("L: "+ArmValue);
 			if(ArmValue > 0.4){
