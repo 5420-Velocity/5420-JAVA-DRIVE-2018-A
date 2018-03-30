@@ -14,6 +14,7 @@ import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Encoder;
+import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.PowerDistributionPanel;
 import edu.wpi.first.wpilibj.Preferences;
@@ -259,6 +260,12 @@ public class Robot extends TimedRobot {
 		MyDrive.stop(); // Send Stop Message to all drive motors during Stop Command.
 		Scheduler.getInstance().run();
 	}
+	
+	@Override
+	public void testPeriodic(){
+		SmartDashboard.putNumber("Distance", distSensor.getRangeInches()); // Send Distance to Driverstation
+		solenoidUpdate(true, breakOn, breakOff); // Set Solenoid to Close
+	}
 
 	/**
 	 * This autonomous (along with the chooser code above) shows how to select
@@ -298,6 +305,7 @@ public class Robot extends TimedRobot {
 		new TurnCTRL(MyDrive, gyroSensor);
 		new ArmCTRL(LiftMotor, encoderArm, lowerLimit);
 		new LiftCTRL(ArmMotor, encoderLiftMap, BreakMap);
+		new DistanceAlign(MyDrive, distSensor);
 		
 		/**
 		 * DriverStation.getInstance().getGameSpecificMessage() returns the Data of the Left or Right 
@@ -385,6 +393,23 @@ public class Robot extends TimedRobot {
 				
 				if(GamePos[1] == 'L') {
 					log("POS 1/3 - Left Color");
+					
+					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
+					autoRuntime.addSequential( new WaitCTRL(0.5) ); // Wait one Sec
+					autoRuntime.addSequential( new DistanceAlign(0.6, 34) ); // Mesure from the Switch, 24in from the Switch past the baseline.
+
+					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+					autoRuntime.addSequential( new TurnCTRL(0.5, 85) ); // Turn to the Right
+					
+					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get to the Scale.
+					
+					autoRuntime.addSequential( new ArmCTRL(0.8, 380) ); // Lift arm upto the target 100
+					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 50) ); // Drive Forward to the Switch
+					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+					autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
+					autoRuntime.addSequential( new DriveCTRL(-0.5, 0, 0, -50) ); // Drive Backwards from the Switch
+					
 				}
 				else if(GamePos[1] == 'R') {
 					log("POS 1/3 - Right Color");
@@ -581,11 +606,13 @@ public class Robot extends TimedRobot {
 		// This is to open and close the Solenoid
 			if(joystick1.getRawButton(1) || joystick0.getRawButton(1)){
 				clawState = false;
+				joystick1.setRumble(GenericHID.RumbleType.kLeftRumble, 0.5 );
 				SmartDashboard.putBoolean("ClawOpenSignal", clawState);
 				solenoidUpdate(clawState, solenoid0, solenoid1); // Set the State
 			}
 			else {
 				clawState = true;
+				joystick1.setRumble(GenericHID.RumbleType.kLeftRumble, 0 );
 				SmartDashboard.putBoolean("ClawOpenSignal", clawState);
 				solenoidUpdate(clawState, solenoid0, solenoid1); // Set the State
 			}
@@ -621,7 +648,7 @@ public class Robot extends TimedRobot {
 					// UP
 					System.out.println("L: Up");
 					solenoidUpdate(false, breakOn, breakOff);
-					ArmMotor.setSpeed(0.7);
+					ArmMotor.setSpeed(0.8);
 				}
 			}
 			else if(ArmValue < -0.4) {

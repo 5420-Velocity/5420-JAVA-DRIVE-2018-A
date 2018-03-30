@@ -57,7 +57,7 @@ public class TurnCTRL extends Command {
 	protected void execute() {
 		
 		// Do the Drive Operation.
-		if(getVGyro() <= this.degTarget ){ 
+		if(Math.abs(getVGyro()) <= Math.abs(this.degTarget) ){ 
 			TurnCTRL.LocalDrive.drive(0, this.Turn, 0);
 		}
 		else {
