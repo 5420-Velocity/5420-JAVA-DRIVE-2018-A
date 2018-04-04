@@ -31,6 +31,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 import org.usfirst.frc.team5420.robot.MecDrive;
 import org.usfirst.frc.team5420.robot.OI;
+import org.usfirst.frc.team5420.robot.subsystems.CameraLines;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -73,7 +74,11 @@ public class Robot extends TimedRobot {
 	// Setup of the Devices in the Code.
 	Timer timer = new Timer();
 	public ADXRS450_Gyro gyroSensor;
-	public UsbCamera camera;
+	
+	//public static UsbCamera camera;
+	public static CameraLines linesCam = null;
+	public static int width = 640; // Camera RESOLUTION
+	public static int height = 480; // Camera RESOLUTION
 	
 	public static Compressor compressor0;
 	public static  Solenoid solenoid0, solenoid1;
@@ -149,10 +154,10 @@ public class Robot extends TimedRobot {
 		robotPos.addObject("Right (3)", ROBOT_POS_THREE_STR);
 		SmartDashboard.putData("Position", robotPos);
 		
-		camera = CameraServer.getInstance().startAutomaticCapture();
-		camera.setExposureAuto();
-		camera.setResolution(640, 480);
-		
+		//camera = CameraServer.getInstance().startAutomaticCapture();
+		//camera.setExposureAuto();
+		//camera.setResolution(Robot.width, Robot.height);
+		linesCam = new CameraLines(); // Create Camera
 		
 		color = DriverStation.getInstance().getAlliance();
 		time = DriverStation.getInstance().getMatchTime();
