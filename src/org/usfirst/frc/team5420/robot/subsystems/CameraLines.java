@@ -39,25 +39,25 @@ public class CameraLines extends Subsystem implements Runnable {
 	@Override
 	public void run() {
 		
-		// get an instance of the CameraServer class
+		// Get an instance of the CameraServer class
 		cameraServer = CameraServer.getInstance();
 
-		// create the front camera
+		// Create the front camera
 		camera = new UsbCamera("Camera (DNU)", 0);
 
-        // set the resolution of the rear camera
+        // Set the resolution of the rear camera
 		camera.setResolution(CAMERA_WIDTH, CAMERA_HEIGHT);
 
-        // set front camera by frames per second (FPS), and set the rear camera FPS to 0
+        // Set front camera by frames per second (FPS), and set the rear camera FPS to 0
 		camera.setFPS(CAMERA_FPS);
 		
-        // create a CvSink for sourcing a camera
+        // Create a CvSink for sourcing a camera
         cameraSink = new CvSink("CameraCvSink");
 
-        // set the source for the CvSink to the selected camera
+        // Set the source for the CvSink to the selected camera
         cameraSink.setSource(camera);
         
-        // create an outPutStream to write video the dashboard
+        // Create an outPutStream to write video the dashboard
         // This stream can be viewed on SmartDashboard by adding a "CameraServer Stream Viewer" widget
         // and setting its "Camera Choice" property to "Selected Camera"
         outputStream = cameraServer.putVideo("Selected Camera", CAMERA_WIDTH, CAMERA_HEIGHT);
@@ -70,7 +70,7 @@ public class CameraLines extends Subsystem implements Runnable {
 		// lets the robot stop this thread when restarting robot code or
 		// deploying.
 		while (!Thread.interrupted()) {
-			// grab a frame from the CvSink
+			// Grab a frame from the CvSink
 			if(cameraSink.grabFrame(image) == 0) {
 				// Send the output the error.
 				outputStream.notifyError("grabFrame failed: " + cameraSink.getError());
@@ -79,17 +79,30 @@ public class CameraLines extends Subsystem implements Runnable {
 			}
 
         	// Draw Left Line
-            Imgproc.line(image, new Point(50, CAMERA_HEIGHT- 10 ), new Point(120, 10),
-				new Scalar(0, 0, 255), 2);
+            Imgproc.line(
+            		image,
+            		new Point(50, CAMERA_HEIGHT- 10 ),
+            		new Point(120, 10),
+            		new Scalar(0, 0, 255),
+            		2
+        		);
             
             // Draw Right Line
-            Imgproc.line(image, new Point(CAMERA_WIDTH - 80, CAMERA_HEIGHT- 10 ), new Point(CAMERA_WIDTH - 120, 10),
-    				new Scalar(0, 0, 255), 2);
-        	
-            //Imgproc.putText(image, "Main Camera", new Point(10, CAMERA_HEIGHT / 1.2), 0, 1.0, new Scalar(255, 255, 255));
+            Imgproc.line(
+            		image,
+            		new Point(CAMERA_WIDTH - 80, CAMERA_HEIGHT- 10 ),
+            		new Point(CAMERA_WIDTH - 120, 10),
+    				new Scalar(0, 0, 255),
+    				2
+    			);
             
 			outputStream.putFrame(image);
 		}
+		
+		// Thread Cleanup for Resources
+		outputStream.free(); // Free Output Camera Stream
+		cameraSink.free(); // Free CvSink Source
+		
 	}
 	
 	@Override
