@@ -611,13 +611,13 @@ public class Robot extends TimedRobot {
 		// This is to open and close the Solenoid
 			if(joystick1.getRawButton(1) || joystick0.getRawButton(1)){
 				clawState = false;
-				joystick1.setRumble(GenericHID.RumbleType.kLeftRumble, 0.5 );
+				joystick0.setRumble(GenericHID.RumbleType.kLeftRumble, 0.5 );
 				SmartDashboard.putBoolean("ClawOpenSignal", clawState);
 				solenoidUpdate(clawState, solenoid0, solenoid1); // Set the State
 			}
 			else {
 				clawState = true;
-				joystick1.setRumble(GenericHID.RumbleType.kLeftRumble, 0 );
+				joystick0.setRumble(GenericHID.RumbleType.kLeftRumble, 0 );
 				SmartDashboard.putBoolean("ClawOpenSignal", clawState);
 				solenoidUpdate(clawState, solenoid0, solenoid1); // Set the State
 			}
@@ -644,9 +644,10 @@ public class Robot extends TimedRobot {
 			System.out.println("L: "+ArmValue);
 			if(ArmValue > 0.4){
 				// Up
-				if(encoderLift.getDistance() <= MaxHightEncoder) {
+				if(encoderLift.getDistance() <= MaxHightEncoder || upperLimit.get() == true) {
 					// Past Max Height
 					System.out.println("L: Max Height");
+					solenoidUpdate(true, breakOn, breakOff); // Break On
 					ArmMotor.setSpeed(0);
 				}
 				else {
@@ -668,11 +669,12 @@ public class Robot extends TimedRobot {
 				else {
 					// Auto Limit and Reset for Calibration of the Lift Sensor
 					encoderLift.reset();  // Zero Sonsor
+					solenoidUpdate(true, breakOn, breakOff); // Break On
 					System.out.println("L: Dower -- Lower Limit Reached.");
 				}
 			}
 			else {
-				solenoidUpdate(true, breakOn, breakOff);
+				solenoidUpdate(true, breakOn, breakOff); // Break On
 				System.out.println("L: Normal");
 				ArmMotor.stopMotor();
 			}
