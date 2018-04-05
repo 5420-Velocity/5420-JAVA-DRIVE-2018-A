@@ -20,6 +20,7 @@ public class ArmCTRL extends Command {
 	double speed = 0.2;
 	private boolean tooHigh = false;
 	private Date EStopEncoderTime;
+	private DigitalInput SELECTED = null;
 	
 	/**
 	 * Class Definition INIT
@@ -57,12 +58,14 @@ public class ArmCTRL extends Command {
 			this.tooHigh = true;
 			System.out.println("Arm Power is getting Negative");
 			this.speed = -( Math.abs(Speed) );
+			SELECTED = Robot.lowerLimit; // Set the Instance Setting to be the lower Limit.
         }
         else if( ArmCTRL.Encoder.getDistance() < targetArm ){
         	// Number is below the Target
         	this.tooHigh = false;
         	System.out.println("Arm Power is getting Posative");
         	this.speed = ( Math.abs(Speed) );
+        	SELECTED = Robot.upperLimit; // Set the Instance Setting to be the upper Limit.
         }
 		
 		this.targetArm = targetArm;
@@ -87,7 +90,7 @@ public class ArmCTRL extends Command {
 		if( this.tooHigh ){
 			// To High, Needs to go Down.
 			System.out.println("Going Down, Too High");
-			if(ArmCTRL.Encoder.getDistance() > this.targetArm){
+			if(ArmCTRL.Encoder.getDistance() > this.targetArm || SELECTED.get()){
 				// If the Arm is Lower than the Target
 				ArmCTRL.Motor.set(this.speed);
 			}
@@ -99,7 +102,7 @@ public class ArmCTRL extends Command {
 		else {
 			System.out.println("Going Up, Too Low");
 			// To Low, Needs to go up.
-			if(ArmCTRL.Encoder.getDistance() < this.targetArm){
+			if(ArmCTRL.Encoder.getDistance() < this.targetArm || SELECTED.get()){
 				// If the Arm is Lower than the Target
 				ArmCTRL.Motor.set(this.speed);
 			}

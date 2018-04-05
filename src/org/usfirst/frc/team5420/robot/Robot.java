@@ -176,7 +176,7 @@ public class Robot extends TimedRobot {
 		ClawMap = new SolenoidMap(solenoid0, solenoid1); // The Claw Solenoids
 		BreakMap = new SolenoidMap( breakOn, breakOff ); // The Break Solenoids
 		
-		distSensor = new Ultrasonic(2,3); // creates the ultra object andassigns ultra to be an ultrasonic sensor which uses DigitalOutput 1 for 
+		distSensor = new Ultrasonic(0,1); // creates the ultra object andassigns ultra to be an ultrasonic sensor which uses DigitalOutput 1 for 
 		
 		encoder0 = new Encoder(4,5, true, Encoder.EncodingType.k4X); // Left DIO, DIO, Reversed Count Direction since it is the Right Side
 		encoder1 = new Encoder(6,7, false, Encoder.EncodingType.k4X); // Right DIO, DIO
@@ -268,7 +268,7 @@ public class Robot extends TimedRobot {
 	
 	@Override
 	public void testPeriodic(){
-		SmartDashboard.putNumber("Distance", distSensor.getRangeInches()); // Send Distance to Driverstation
+		log( "" + distSensor.getRangeInches()); // Send Distance to Driverstation
 		solenoidUpdate(true, breakOn, breakOff); // Set Solenoid to Close
 	}
 
@@ -308,7 +308,8 @@ public class Robot extends TimedRobot {
 		// Setup the Static Systems and their Dependent Resources.
 		new DriveCTRL(MyDrive, encoder0, encoder1);
 		new TurnCTRL(MyDrive, gyroSensor);
-		new ArmCTRL(LiftMotor, encoderArm, lowerLimit);
+		new ArmCTRL(LiftMotor, encoderArm, upperLimit, lowerLimit);
+		new ArmCTRLHigh(LiftMotor, upperLimit, lowerLimit);
 		new LiftCTRL(ArmMotor, encoderLiftMap, BreakMap);
 		new DistanceAlign(MyDrive, distSensor);
 		
@@ -404,11 +405,13 @@ public class Robot extends TimedRobot {
 					autoRuntime.addSequential( new DistanceAlign(0.6, 34) ); // Mesure from the Switch, 24in from the Switch past the baseline.
 
 					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get to the Scale.
 					autoRuntime.addSequential( new TurnCTRL(0.5, 85) ); // Turn to the Right
 					
-					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get to the Scale.
+					solenoidUpdate(false, breakOn, breakOff); // Break Off
+					autoRuntime.addSequential( new ArmCTRLHigh(0.8) ); // Lift arm upto the Limit
+					solenoidUpdate(true, breakOn, breakOff); // Break On
 					
-					autoRuntime.addSequential( new ArmCTRL(0.8, 380) ); // Lift arm upto the target 100
 					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 50) ); // Drive Forward to the Switch
 					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
@@ -449,9 +452,9 @@ public class Robot extends TimedRobot {
 				
 				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
 				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				autoRuntime.addSequential( new TurnCTRL(0.5, 85) ); // Turn to the Right
-				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 				autoRuntime.addSequential( new ArmCTRL(0.8, 380) ); // Lift arm upto the target 100
+				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+				autoRuntime.addSequential( new TurnCTRL(0.5, 85) ); // Turn to the Right
 				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 100) ); // Drive Forward to the Switch
 				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
@@ -472,9 +475,9 @@ public class Robot extends TimedRobot {
 				
 				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
 				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				autoRuntime.addSequential( new TurnCTRL(0.5, -85) ); // Turn to the Right
-				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 				autoRuntime.addSequential( new ArmCTRL(0.8, 380) ); // Lift arm upto the target 100
+				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+				autoRuntime.addSequential( new TurnCTRL(0.5, -85) ); // Turn to the Right
 				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 100) ); // Drive Forward to the Switch
 				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
@@ -589,7 +592,6 @@ public class Robot extends TimedRobot {
 	 */
 	@Override
 	public void teleopPeriodic() {
-		
 		// Driver B Button (XBOX)
 		// This Sets all of the Motors to a Stop State when Pressed.
 			double powerJoy = ( (-joystick0.getRawAxis(2)) + joystick0.getRawAxis(3) ); // Add the 2 values from the Controller Inputs
