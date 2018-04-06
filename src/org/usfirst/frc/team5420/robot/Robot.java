@@ -640,39 +640,22 @@ public class Robot extends TimedRobot {
 		// Operator
 		// This is to control the Lift action and it's motor+break, CUBE HOLDER, ARMS
 			if(joystick1.getRawButton(3)){
-				// Up
-				System.out.println("UP");
-				LiftMotor.setSpeed(0.7);
-			}
-			else if(joystick1.getRawButton(4)) {
-				// Down
-				System.out.println("DOWN");
-				LiftMotor.setSpeed(-0.6);
-			}
-			else {
-				LiftMotor.stopMotor();
-			}
-
-		// Operator
-		// This is for the Arm Lift Control, LIFT ASSEBILY, THE CART DRIVE
-			double ArmValue = joystick1.getRawAxis(1);
-			System.out.println("L: "+ArmValue);
-			if(ArmValue > 0.4){
+				
 				// Up
 				if(encoderLift.getDistance() <= MaxHightEncoder || upperLimit.get() == true) {
 					// Past Max Height
-					System.out.println("L: Max Height");
+					System.out.println("C: Max Height");
 					solenoidUpdate(true, breakOn, breakOff); // Break On
 					ArmMotor.setSpeed(0);
 				}
 				else {
 					// UP
-					System.out.println("L: Up");
+					System.out.println("C: Up");
 					solenoidUpdate(false, breakOn, breakOff);
 					ArmMotor.setSpeed(0.8);
 				}
 			}
-			else if(ArmValue < -0.4) {
+			else if(joystick1.getRawButton(4)) {
 				// Down
 				// Keep in mind the Lower Limit Switch is Always True till the Arm Comes down and interupts the Light, Makes it False.
 				if(lowerLimit.get()){
@@ -690,9 +673,14 @@ public class Robot extends TimedRobot {
 			}
 			else {
 				solenoidUpdate(true, breakOn, breakOff); // Break On
-				System.out.println("L: Normal");
-				ArmMotor.stopMotor();
+				ArmMotor.setSpeed(0);
 			}
+
+		// Operator
+		// This is for the Arm Lift Control, LIFT ASSEBILY, THE CART DRIVE
+			double ArmValue = joystick1.getRawAxis(1)*0.6; // Scale Value input to only 60%
+			System.out.println("L: "+ArmValue);
+			LiftMotor.setSpeed(ArmValue);
 			
 		Scheduler.getInstance().run();
 	}
