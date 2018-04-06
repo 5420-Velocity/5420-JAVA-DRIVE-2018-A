@@ -68,8 +68,8 @@ public class Robot extends TimedRobot {
 	public static OI jio;
 	String autonomousCommand;
 	//SendableChooser<Command> chooser = new SendableChooser<>();
-	SendableChooser<String> chooser = new SendableChooser<>();
-	static SendableChooser<String> robotPos = new SendableChooser<>();
+	public SendableChooser<String> chooser = new SendableChooser<>();
+	public SendableChooser<String> robotPos = new SendableChooser<>();
 	
 	// Setup of the Devices in the Code.
 	Timer timer = new Timer();
@@ -97,14 +97,14 @@ public class Robot extends TimedRobot {
 	public static Joystick joystick0, joystick1;
 	public static VictorSP LiftMotor, ArmMotor;
 	
-	public static SolenoidMap ClawMap; // The Claw Solenoids
-	public static SolenoidMap BreakMap; // The Break Solenoids
+	public static SolenoidMap ClawMap; // The Claw Solenoid
+	public static SolenoidMap BreakMap; // The Break Solenoid
 	
 	// Motor Setup
 	public VictorSP motorFL, motorRL, motorRR, motorFR;
 	public MecDrive MyDrive;
 	
-	// The Preferences for the Robot Preferences Pannel in the SmartDashboard
+	// The Preferences for the Robot Preferences Panel in the SmartDashboard
 	public Preferences SmartDashboardPref;
 	// @link https://wpilib.screenstepslive.com/s/currentCS/m/java/l/219414-power-distribution-panel
 	PowerDistributionPanel pdp;
@@ -122,6 +122,18 @@ public class Robot extends TimedRobot {
 	 */
 	@Override
 	public void robotInit() {
+		//chooser.addObject(name, object);
+		chooser.addObject("Switch Auto", SwitchAuto);
+		chooser.addObject("No Auto Selected", NoAuto);
+		chooser.addObject("Scale Auto", ScaleAuto);
+		chooser.addObject("Scale then Switch", ScaleSwitchAuto);
+		//chooser.addObject("Do it!!!!", "WORK");
+		SmartDashboard.putData("AutoChoices", chooser);
+		
+		
+		
+		SmartDashboard.putString("Chooser String", chooser.toString());
+		
 		SmartDashboard.putBoolean("AutoInitComplete", false);
 		SmartDashboard.putBoolean("TeleopInitComplete", false);
 		SmartDashboard.putBoolean("RobotInit", false);
@@ -137,20 +149,15 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putBoolean("ResetDriveENC", false);
 		SmartDashboard.putBoolean("UpperLimit", false);
 		SmartDashboard.putBoolean("LowerLimits", false);
-		SmartDashboard.putString("AutoSelect", "(Not Set)");
+		SmartDashboard.putBoolean("ResendAutoCommands", false);
+		//SmartDashboard.putString("AutoSelect", "(Not Set)");
 		
 		SmartDashboard.putNumber("AutoDelay", 0); // Init Drive Station Values
 		
-		//chooser.addObject(name, object);
-		chooser.addDefault("No Auto Selected", NoAuto);
-		chooser.addObject("Scale Auto", ScaleAuto);
-		chooser.addObject("Switch Auto", SwitchAuto);
-		chooser.addObject("Base Line Auto", BaseLine);
-		chooser.addObject("Scale then Switch", ScaleSwitchAuto);
-		SmartDashboard.putData("AutoChoices", chooser);
-				
-		robotPos.addObject("Left (1)", ROBOT_POS_ONE_STR);
-		robotPos.addDefault("Center (2)", ROBOT_POS_TWO_STR);
+		
+		
+		robotPos.addDefault("Left (1)", ROBOT_POS_ONE_STR);
+		robotPos.addObject("Center (2)", ROBOT_POS_TWO_STR);
 		robotPos.addObject("Right (3)", ROBOT_POS_THREE_STR);
 		SmartDashboard.putData("Position", robotPos);
 		
@@ -248,6 +255,12 @@ public class Robot extends TimedRobot {
 			encoderArm.reset();
 		}
 		
+		if(SmartDashboard.getBoolean("ResendAutoCommands", false) == true) {
+			SmartDashboard.putData("AutoChoices", chooser); // Resend the AUTO Select
+			SmartDashboard.putData("Position", robotPos); // Resend the POSITION Select
+			SmartDashboard.putBoolean("ResendAutoCommands", false); // Rest Chekbox
+		}
+		
 	}
 
 	/**
@@ -303,7 +316,7 @@ public class Robot extends TimedRobot {
 		autonomousCommand = this.chooser.getSelected();
 		SmartDashboard.putString("AutoSelect", autonomousCommand);
 		String autoSelect = autonomousCommand;
-		String robotPos = Robot.robotPos.getSelected();
+		String robotPos = this.robotPos.getSelected();
 		
 		// Setup the Static Systems and their Dependent Resources.
 		new DriveCTRL(MyDrive, encoder0, encoder1);
@@ -541,7 +554,7 @@ public class Robot extends TimedRobot {
 			
 			// Drive past the Baseline if not Center
 			if(robotPos == ROBOT_POS_ONE_STR || robotPos == ROBOT_POS_THREE_STR){
-				log("POS 1/3 - Unknown Color");
+				log("POS 1/3 - Unknown Side, Baseline");
 				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) );
 			}
 			
