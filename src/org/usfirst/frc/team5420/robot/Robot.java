@@ -7,11 +7,10 @@
 
 package org.usfirst.frc.team5420.robot;
 
-import edu.wpi.cscore.UsbCamera;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
-import edu.wpi.first.wpilibj.CameraServer;
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.GenericHID;
@@ -83,6 +82,7 @@ public class Robot extends TimedRobot {
 	public static Compressor compressor0;
 	public static  Solenoid solenoid0, solenoid1;
 	public static  Solenoid breakOn, breakOff;
+	public static DoubleSolenoid liftBreak;
 	
 	public static Ultrasonic distSensor; 
 	public static boolean AutoDelayFinished = false;
@@ -130,7 +130,9 @@ public class Robot extends TimedRobot {
 		//chooser.addObject("Do it!!!!", "WORK");
 		SmartDashboard.putData("AutoChoices", chooser);
 		
-		
+		// liftBreak.set(Value.kReverse);
+		// liftBreak.set(Value.kOff);
+		// liftBreak.set(Value.kForward);
 		
 		SmartDashboard.putString("Chooser String", chooser.toString());
 		
@@ -200,7 +202,7 @@ public class Robot extends TimedRobot {
 		
 		lowerLimit = new DigitalInput(17); // DIO
 		upperLimit = new DigitalInput(16); // DIO
-		CloseMiss = new DigitalInput(25); // Disableed, Used the same Interface as the Encoder
+		CloseMiss = new DigitalInput(25); // Disabled, Used the same Interface as the Encoder
 		
 		LiftMotor = new VictorSP(2); // PWM
 		ArmMotor = new VictorSP(1); // PWM
