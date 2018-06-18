@@ -1,6 +1,8 @@
-package org.usfirst.frc.team5420.robot;
+package org.usfirst.frc.team5420.robot.commands;
 
 import edu.wpi.first.wpilibj.command.Command;
+
+import org.usfirst.frc.team5420.robot.MecDrive;
 
 import edu.wpi.first.wpilibj.Ultrasonic;
 

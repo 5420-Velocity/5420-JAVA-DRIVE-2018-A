@@ -11,6 +11,7 @@ import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
+import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.GenericHID;
@@ -30,6 +31,14 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 import org.usfirst.frc.team5420.robot.MecDrive;
 import org.usfirst.frc.team5420.robot.OI;
+import org.usfirst.frc.team5420.robot.commands.ArmCTRL;
+import org.usfirst.frc.team5420.robot.commands.ArmCTRLHigh;
+import org.usfirst.frc.team5420.robot.commands.DistanceAlign;
+import org.usfirst.frc.team5420.robot.commands.DriveCTRL;
+import org.usfirst.frc.team5420.robot.commands.LiftCTRL;
+import org.usfirst.frc.team5420.robot.commands.SolenoidCTRL;
+import org.usfirst.frc.team5420.robot.commands.TurnCTRL;
+import org.usfirst.frc.team5420.robot.commands.WaitCTRL;
 import org.usfirst.frc.team5420.robot.subsystems.CameraLines;
 
 /**
@@ -80,24 +89,23 @@ public class Robot extends TimedRobot {
 	public static int height = 480; // Camera RESOLUTION
 	
 	public static Compressor compressor0;
-	public static  Solenoid solenoid0, solenoid1;
 	public static  Solenoid breakOn, breakOff;
+	public static DoubleSolenoid armBreak; 
 	public static DoubleSolenoid liftBreak;
 	
 	public static Ultrasonic distSensor; 
 	public static boolean AutoDelayFinished = false;
 	
-	public static Encoder encoder0, encoder1;
-	public static Encoder encoderArm, encoderLift;
+	public static Encoder leftDriveEncoder, rightDriveEncoder;
+	public static Encoder encoderLift, encoderArm;
 	// The EncoderMap has controls for Virtual Offsets, Needed since it Starts Mid Mast.
-	public static EncoderMap encoderLiftMap; // Encoder Map Class, Has offset and the Get Controls. 
+	public static EncoderMap encoderArmMap; // Encoder Map Class, Has offset and the Get Controls. 
 	public static DigitalInput upperLimit, lowerLimit;
-	public static DigitalInput CloseMiss;
+	public static DigitalInput flipperUp, flipperDown;
 	
-	public static Joystick joystick0, joystick1;
+	public static Joystick controllerDriver, controllerOperator;
 	public static VictorSP LiftMotor, ArmMotor;
 	
-	public static SolenoidMap ClawMap; // The Claw Solenoid
 	public static SolenoidMap BreakMap; // The Break Solenoid
 	
 	// Motor Setup
@@ -177,42 +185,46 @@ public class Robot extends TimedRobot {
 		gyroSensor.calibrate(); // SPI
 		
 		compressor0 = new Compressor(0);
-		solenoid0 = new Solenoid(1); // Claw Close 
-		solenoid1 = new Solenoid(2); // Claw Open
 		breakOn = new Solenoid(3); // Pull the Cylinder Close, Break on 
 		breakOff = new Solenoid(4); // Push the Cylinder Open, Break off
 		
-		ClawMap = new SolenoidMap(solenoid0, solenoid1); // The Claw Solenoids
+		armBreak = new DoubleSolenoid(1,2);
+		liftBreak = new DoubleSolenoid(3,4);
+		
 		BreakMap = new SolenoidMap( breakOn, breakOff ); // The Break Solenoids
 		
-		distSensor = new Ultrasonic(0,1); // creates the ultra object andassigns ultra to be an ultrasonic sensor which uses DigitalOutput 1 for 
-		
-		encoder0 = new Encoder(4,5, true, Encoder.EncodingType.k4X); // Left DIO, DIO, Reversed Count Direction since it is the Right Side
-		encoder1 = new Encoder(6,7, false, Encoder.EncodingType.k4X); // Right DIO, DIO
-		
-		encoderArm = new Encoder(10,11, true, Encoder.EncodingType.k4X); // Lift DIO, DIO
-		encoderLift = new Encoder(12,13, true, Encoder.EncodingType.k4X); // Arm DIO, DIO
-		
-		encoderLiftMap = new EncoderMap(encoderLift); // The Encoder Offset Control
-		encoderLiftMap.setOffset(5000); // Set the Encoder offset for Mid-Mast
+		armBreak.set(Value.kOff);
 		
 		
-		joystick0 = new Joystick(0); //Controller One USB
-		joystick1 = new Joystick(1); //Controller Two USB
+		
+		distSensor = new Ultrasonic(0,1); // creates the ultra object and assigns ultra to be an ultrasonic sensor which uses DigitalOutput 1 for 
+		
+		leftDriveEncoder = new Encoder(4,5, true, Encoder.EncodingType.k4X); // Left DIO, DIO, Reversed Count Direction since it is the Right Side
+		rightDriveEncoder = new Encoder(6,7, false, Encoder.EncodingType.k4X); // Right DIO, DIO
+		encoderLift = new Encoder(10,11, true, Encoder.EncodingType.k4X); // Lift DIO, DIO
+		encoderArm = new Encoder(12,13, true, Encoder.EncodingType.k4X); // Arm DIO, DIO
+		
+		encoderArmMap = new EncoderMap(encoderArm); // The Encoder Offset Control
+		encoderArmMap.setOffset(5000); // Set the Encoder offset for Mid-Mast
+		
+		
+		controllerDriver = new Joystick(0); // Controller One USB
+		controllerOperator = new Joystick(1); // Controller Two USB
 		
 		lowerLimit = new DigitalInput(17); // DIO
 		upperLimit = new DigitalInput(16); // DIO
-		CloseMiss = new DigitalInput(25); // Disabled, Used the same Interface as the Encoder
+		flipperUp = new DigitalInput(25); // Mount Sensor
+		flipperDown = new DigitalInput(24); // Mount Sensor 
 		
 		LiftMotor = new VictorSP(2); // PWM
 		ArmMotor = new VictorSP(1); // PWM
 		
-		motorFL = new VictorSP(3); // PWM
-		motorRL = new VictorSP(4); // PWM
-		motorFR = new VictorSP(6); // PWM
-		motorRR = new VictorSP(5); // PWM
+		motorFL = new VictorSP(3); // PWM 
+		motorRL = new VictorSP(4); // PWM 
+		motorFR = new VictorSP(6); // PWM 
+		motorRR = new VictorSP(5); // PWM 
 		
-		//       frontLeftMotor, rearLeftMotor, frontRightMotor, rearRightMotor
+		//                     frontLeftMotor, rearLeftMotor, frontRightMotor, rearRightMotor
 		MyDrive = new MecDrive(motorFL, motorFR, motorRL, motorRR);
 		//MyDrive.setGyro(gyroSensor); // Send the Gyro Object
 		MyDrive.invert(true);
@@ -234,27 +246,25 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putNumber("Angle", getGyro() );
 		SmartDashboard.putNumber("VAngle", getVGyro() );
 		
-		SmartDashboard.putNumber("LiftPos", encoderLift.getDistance());
-		SmartDashboard.putNumber("LiftArmPos", encoderArm.getDistance());
+		SmartDashboard.putNumber("LiftPos", encoderArm.getDistance());
+		SmartDashboard.putNumber("LiftArmPos", encoderLift.getDistance());
 		
-		SmartDashboard.putNumber("EncoderLeft", encoder0.getDistance());
-		SmartDashboard.putNumber("EncoderRight", encoder1.getDistance());
+		SmartDashboard.putNumber("EncoderLeft", leftDriveEncoder.getDistance());
+		SmartDashboard.putNumber("EncoderRight", rightDriveEncoder.getDistance());
 		SmartDashboard.putBoolean("UpperLimit", false);
 		SmartDashboard.putBoolean("LowerLimits", lowerLimit.get());
 		
 		SmartDashboard.putNumber("Battery", pdp.getVoltage());
 		SmartDashboard.putNumber("CurrentAmps", pdp.getTotalCurrent());
 		
-		SmartDashboard.putBoolean("CloseMiss", CloseMiss.get());
-		
 		// Reset the Encoder Values
 		if(SmartDashboard.getBoolean("ResetDriveENC", false) == true){
 			SmartDashboard.putBoolean("ResetDriveENC", false);
-			encoder0.reset();
-			encoder1.reset();
+			leftDriveEncoder.reset();
+			rightDriveEncoder.reset();
 			
-			encoderLift.reset();
 			encoderArm.reset();
+			encoderLift.reset();
 		}
 		
 		if(SmartDashboard.getBoolean("ResendAutoCommands", false) == true) {
@@ -306,7 +316,7 @@ public class Robot extends TimedRobot {
 	@Override
 	public void autonomousInit() {
 		int baseLine = (128*EncoderIN);
-		Robot.ClawMap.set(clawState); // Set the init State, Set asap.
+		//Robot.ClawMap.set(clawState); // Set the init State, Set asap.
 		
 		SmartDashboard.putBoolean("ClawOpenSignal", clawState);
 		
@@ -321,11 +331,11 @@ public class Robot extends TimedRobot {
 		String robotPos = this.robotPos.getSelected();
 		
 		// Setup the Static Systems and their Dependent Resources.
-		new DriveCTRL(MyDrive, encoder0, encoder1);
+		new DriveCTRL(MyDrive, leftDriveEncoder, rightDriveEncoder);
 		new TurnCTRL(MyDrive, gyroSensor);
-		new ArmCTRL(LiftMotor, encoderArm, upperLimit, lowerLimit);
+		new ArmCTRL(LiftMotor, encoderLift, upperLimit, lowerLimit);
 		new ArmCTRLHigh(LiftMotor, upperLimit, lowerLimit);
-		new LiftCTRL(ArmMotor, encoderLiftMap, BreakMap);
+		new LiftCTRL(ArmMotor, encoderArmMap, BreakMap);
 		new DistanceAlign(MyDrive, distSensor);
 		
 		/**
@@ -398,8 +408,8 @@ public class Robot extends TimedRobot {
 		//   +-+-+ +-+-+-+-+
 		if(autonomousCommand == NoAuto){
 			System.out.println("HUMAN: :'( Told not to do an Auto. [NoAuto]");
-			encoder0.reset();
-			encoder1.reset();
+			leftDriveEncoder.reset();
+			rightDriveEncoder.reset();
 		} // End "NoAuto" Selection Process.
 		
 
@@ -430,7 +440,7 @@ public class Robot extends TimedRobot {
 					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 50) ); // Drive Forward to the Switch
 					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-					autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
+					//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
 					autoRuntime.addSequential( new DriveCTRL(-0.5, 0, 0, -50) ); // Drive Backwards from the Switch
 					
 				}
@@ -473,7 +483,7 @@ public class Robot extends TimedRobot {
 				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 100) ); // Drive Forward to the Switch
 				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
+				//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
 				autoRuntime.addSequential( new DriveCTRL(-0.5, 0, 0, -50) ); // Drive Backwards from the Switch
 			}
 			
@@ -496,7 +506,7 @@ public class Robot extends TimedRobot {
 				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 100) ); // Drive Forward to the Switch
 				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
+				//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
 				autoRuntime.addSequential( new DriveCTRL(-0.5, 0, 0, -50) ); // Drive Backwards from the Switch
 			}
 			
@@ -513,7 +523,7 @@ public class Robot extends TimedRobot {
 					autoRuntime.addSequential( new LiftCTRL(0.5, 3000) ); // Lift arm upto the target 3000
 					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 500) ); // Drive Forward to the Switch
-					autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
+					//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
 					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, -500) ); // Drive Backwards from the Switch
 				}
 				else if(GamePos[0] == 'R') {
@@ -525,7 +535,7 @@ public class Robot extends TimedRobot {
 					autoRuntime.addSequential( new LiftCTRL(0.5, 3000) ); // Lift arm upto the target 3000
 					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 500) ); // Drive Forward to the Switch
-					autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
+					//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
 					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, -500) ); // Drive Backwards from the Switch
 				}
 				
@@ -609,11 +619,11 @@ public class Robot extends TimedRobot {
 	public void teleopPeriodic() {
 		// Driver B Button (XBOX)
 		// This Sets all of the Motors to a Stop State when Pressed.
-			double powerJoy = ( (-joystick0.getRawAxis(2)) + joystick0.getRawAxis(3) ); // Add the 2 values from the Controller Inputs
-			double turnJoy = joystick0.getRawAxis(0);
-			double crabJoy = joystick0.getRawAxis(4);
+			double powerJoy = ( (-controllerDriver.getRawAxis(2)) + controllerDriver.getRawAxis(3) ); // Add the 2 values from the Controller Inputs
+			double turnJoy = controllerDriver.getRawAxis(0);
+			double crabJoy = controllerDriver.getRawAxis(4);
 			
-			if(joystick0.getRawButton(2) || joystick1.getRawButton(2) ){
+			if(controllerDriver.getRawButton(2) || controllerOperator.getRawButton(2) ){
 				MyDrive.DriveControl.stopMotor();
 			}
 			else {
@@ -626,25 +636,25 @@ public class Robot extends TimedRobot {
 		
 		// Operator A Button (XBOX)
 		// This is to open and close the Solenoid
-			if(joystick1.getRawButton(1) || joystick0.getRawButton(1)){
+			if(controllerOperator.getRawButton(1) || controllerDriver.getRawButton(1)){
 				clawState = false;
-				joystick0.setRumble(GenericHID.RumbleType.kLeftRumble, 0.5 );
+				controllerDriver.setRumble(GenericHID.RumbleType.kLeftRumble, 0.5 );
 				SmartDashboard.putBoolean("ClawOpenSignal", clawState);
-				solenoidUpdate(clawState, solenoid0, solenoid1); // Set the State
+				//solenoidUpdate(clawState, solenoid0, solenoid1); // Set the State
 			}
 			else {
 				clawState = true;
-				joystick0.setRumble(GenericHID.RumbleType.kLeftRumble, 0 );
+				controllerDriver.setRumble(GenericHID.RumbleType.kLeftRumble, 0 );
 				SmartDashboard.putBoolean("ClawOpenSignal", clawState);
-				solenoidUpdate(clawState, solenoid0, solenoid1); // Set the State
+				//solenoidUpdate(clawState, solenoid0, solenoid1); // Set the State
 			}
 		
 		// Operator
 		// This is to control the Lift action and it's motor+break, CUBE HOLDER, ARMS
-			if(joystick1.getRawButton(3)){
+			if(controllerOperator.getRawButton(3)){
 				
 				// Up
-				if(encoderLift.getDistance() <= MaxHightEncoder || upperLimit.get() == true) {
+				if(encoderArm.getDistance() <= MaxHightEncoder || upperLimit.get() == true) {
 					// Past Max Height
 					System.out.println("C: Max Height");
 					solenoidUpdate(true, breakOn, breakOff); // Break On
@@ -657,7 +667,7 @@ public class Robot extends TimedRobot {
 					ArmMotor.setSpeed(0.8);
 				}
 			}
-			else if(joystick1.getRawButton(4)) {
+			else if(controllerOperator.getRawButton(4)) {
 				// Down
 				// Keep in mind the Lower Limit Switch is Always True till the Arm Comes down and interupts the Light, Makes it False.
 				if(lowerLimit.get()){
@@ -668,7 +678,7 @@ public class Robot extends TimedRobot {
 				}
 				else {
 					// Auto Limit and Reset for Calibration of the Lift Sensor
-					encoderLift.reset();  // Zero Sonsor
+					encoderArm.reset();  // Zero Sonsor
 					solenoidUpdate(true, breakOn, breakOff); // Break On
 					System.out.println("L: Dower -- Lower Limit Reached.");
 				}
@@ -680,7 +690,7 @@ public class Robot extends TimedRobot {
 
 		// Operator
 		// This is for the Arm Lift Control, LIFT ASSEBILY, THE CART DRIVE
-			double ArmValue = joystick1.getRawAxis(1)*0.6; // Scale Value input to only 60%
+			double ArmValue = controllerOperator.getRawAxis(1)*0.6; // Scale Value input to only 60%
 			System.out.println("L: "+ArmValue);
 			LiftMotor.setSpeed(ArmValue);
 			
@@ -706,14 +716,14 @@ public class Robot extends TimedRobot {
 	
 	public int getDriveEncoder(){
 		return (int) Math.max(
-			Robot.encoder0.getDistance(),
-			Robot.encoder1.getDistance()
+			Robot.leftDriveEncoder.getDistance(),
+			Robot.rightDriveEncoder.getDistance()
 		);
 	}
 	
 	public void resetEncoder(){
-		Robot.encoder0.reset();
-		Robot.encoder1.reset();
+		Robot.leftDriveEncoder.reset();
+		Robot.rightDriveEncoder.reset();
 	}
 	
 	/**

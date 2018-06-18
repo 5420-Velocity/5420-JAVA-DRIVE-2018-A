@@ -1,8 +1,10 @@
-package org.usfirst.frc.team5420.robot;
+package org.usfirst.frc.team5420.robot.commands;
 
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+
+import org.usfirst.frc.team5420.robot.Robot;
 
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Encoder;

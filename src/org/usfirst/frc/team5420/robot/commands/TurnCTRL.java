@@ -1,4 +1,6 @@
-package org.usfirst.frc.team5420.robot;
+package org.usfirst.frc.team5420.robot.commands;
+
+import org.usfirst.frc.team5420.robot.MecDrive;
 
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.command.Command;

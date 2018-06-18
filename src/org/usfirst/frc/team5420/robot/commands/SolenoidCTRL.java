@@ -1,4 +1,6 @@
-package org.usfirst.frc.team5420.robot;
+package org.usfirst.frc.team5420.robot.commands;
+
+import org.usfirst.frc.team5420.robot.SolenoidMap;
 
 import edu.wpi.first.wpilibj.command.Command;
 
