@@ -8,6 +8,7 @@
 package org.usfirst.frc.team5420.robot;
 
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
+import edu.wpi.first.wpilibj.AnalogPotentiometer;
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
@@ -89,9 +90,9 @@ public class Robot extends TimedRobot {
 	public static int height = 480; // Camera RESOLUTION
 	
 	public static Compressor compressor0;
-	public static  Solenoid breakOn, breakOff;
-	public static DoubleSolenoid armBreak; 
-	public static DoubleSolenoid liftBreak;
+	public static Solenoid liftBreakOn, liftBreakOff, armBreakOn, armBreakOff;
+	public static SolenoidMap armBreak, liftBreak;
+	public static SolenoidMap liftBreakMap, armBreakMap;
 	
 	public static Ultrasonic distSensor; 
 	public static boolean AutoDelayFinished = false;
@@ -102,11 +103,10 @@ public class Robot extends TimedRobot {
 	public static EncoderMap encoderArmMap; // Encoder Map Class, Has offset and the Get Controls. 
 	public static DigitalInput upperLimit, lowerLimit;
 	public static DigitalInput flipperUp, flipperDown;
+	public static AnalogPotentiometer flipperLocaiton;
 	
 	public static Joystick controllerDriver, controllerOperator;
-	public static VictorSP LiftMotor, ArmMotor;
-	
-	public static SolenoidMap BreakMap; // The Break Solenoid
+	public static VictorSP LiftMotor, ArmMotor, PivotMotor, IntakeMotor;
 	
 	// Motor Setup
 	public VictorSP motorFL, motorRL, motorRR, motorFR;
@@ -138,10 +138,6 @@ public class Robot extends TimedRobot {
 		//chooser.addObject("Do it!!!!", "WORK");
 		SmartDashboard.putData("AutoChoices", chooser);
 		
-		// liftBreak.set(Value.kReverse);
-		// liftBreak.set(Value.kOff);
-		// liftBreak.set(Value.kForward);
-		
 		SmartDashboard.putString("Chooser String", chooser.toString());
 		
 		SmartDashboard.putBoolean("AutoInitComplete", false);
@@ -151,11 +147,12 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putNumber("DrivePower", 0 ); // Init Drive Station Values
 		SmartDashboard.putNumber("DriveTurn", 0 ); // Init Drive Station Values
 		SmartDashboard.putNumber("DriveCrab", 0 ); // Init Drive Station Values
+		SmartDashboard.putBoolean("LimitedPower", false);
+		
 		SmartDashboard.putNumber("Battery", 0); // Init Drive Station Values
 		SmartDashboard.putNumber("Angle", 0 );
 		SmartDashboard.putNumber("VAngle", 0 );
-		SmartDashboard.putBoolean("ClawOpenSignal", clawState);
-		SmartDashboard.putBoolean("CloseMiss", false);
+		SmartDashboard.putString("CubeIntake", "Idle"); // Cube Intake State
 		SmartDashboard.putBoolean("ResetDriveENC", false);
 		SmartDashboard.putBoolean("UpperLimit", false);
 		SmartDashboard.putBoolean("LowerLimits", false);
@@ -163,8 +160,6 @@ public class Robot extends TimedRobot {
 		//SmartDashboard.putString("AutoSelect", "(Not Set)");
 		
 		SmartDashboard.putNumber("AutoDelay", 0); // Init Drive Station Values
-		
-		
 		
 		robotPos.addDefault("Left (1)", ROBOT_POS_ONE_STR);
 		robotPos.addObject("Center (2)", ROBOT_POS_TWO_STR);
@@ -179,25 +174,21 @@ public class Robot extends TimedRobot {
 		color = DriverStation.getInstance().getAlliance();
 		time = DriverStation.getInstance().getMatchTime();
 		
-		jio = new OI();
+		jio = new OI(); // Not Used Yet
 		
 		gyroSensor = new ADXRS450_Gyro( SPI.Port.kOnboardCS0 ); // SPI
 		gyroSensor.calibrate(); // SPI
 		
 		compressor0 = new Compressor(0);
-		breakOn = new Solenoid(3); // Pull the Cylinder Close, Break on 
-		breakOff = new Solenoid(4); // Push the Cylinder Open, Break off
+		armBreakOn = new Solenoid(1);
+		armBreakOff = new Solenoid(2);
+		liftBreakOn = new Solenoid(3); 
+		liftBreakOff = new Solenoid(4);
 		
-		armBreak = new DoubleSolenoid(1,2);
-		liftBreak = new DoubleSolenoid(3,4);
+		armBreak = new SolenoidMap( armBreakOn, armBreakOff ); // The Lift Break Solenoids
+		liftBreak =  new SolenoidMap(liftBreakOn, liftBreakOff); // The Arm Break Solenoids
 		
-		BreakMap = new SolenoidMap( breakOn, breakOff ); // The Break Solenoids
-		
-		armBreak.set(Value.kOff);
-		
-		
-		
-		distSensor = new Ultrasonic(0,1); // creates the ultra object and assigns ultra to be an ultrasonic sensor which uses DigitalOutput 1 for 
+		distSensor = new Ultrasonic(0,1); // creates the ultrasonic object and assigns ultrasonic to be an ultrasonic sensor which uses DigitalOutput 1 for 
 		
 		leftDriveEncoder = new Encoder(4,5, true, Encoder.EncodingType.k4X); // Left DIO, DIO, Reversed Count Direction since it is the Right Side
 		rightDriveEncoder = new Encoder(6,7, false, Encoder.EncodingType.k4X); // Right DIO, DIO
@@ -208,16 +199,20 @@ public class Robot extends TimedRobot {
 		encoderArmMap.setOffset(5000); // Set the Encoder offset for Mid-Mast
 		
 		
-		controllerDriver = new Joystick(0); // Controller One USB
-		controllerOperator = new Joystick(1); // Controller Two USB
+		controllerDriver = new Joystick(1); // Controller One USB (Logitech Extreme 3D)
+		controllerOperator = new Joystick(0); // Controller Two USB (XBOX 360)
 		
 		lowerLimit = new DigitalInput(17); // DIO
 		upperLimit = new DigitalInput(16); // DIO
 		flipperUp = new DigitalInput(25); // Mount Sensor
 		flipperDown = new DigitalInput(24); // Mount Sensor 
 		
-		LiftMotor = new VictorSP(2); // PWM
-		ArmMotor = new VictorSP(1); // PWM
+		flipperLocaiton = new AnalogPotentiometer(0);
+		
+		LiftMotor = new VictorSP(1); // PWM
+		ArmMotor = new VictorSP(2); // PWM
+		IntakeMotor = new VictorSP(14); // PWM
+		PivotMotor = new VictorSP(19); // PWM
 		
 		motorFL = new VictorSP(3); // PWM 
 		motorRL = new VictorSP(4); // PWM 
@@ -270,7 +265,7 @@ public class Robot extends TimedRobot {
 		if(SmartDashboard.getBoolean("ResendAutoCommands", false) == true) {
 			SmartDashboard.putData("AutoChoices", chooser); // Resend the AUTO Select
 			SmartDashboard.putData("Position", robotPos); // Resend the POSITION Select
-			SmartDashboard.putBoolean("ResendAutoCommands", false); // Rest Chekbox
+			SmartDashboard.putBoolean("ResendAutoCommands", false); // Rest Checkbox
 		}
 		
 	}
@@ -293,8 +288,7 @@ public class Robot extends TimedRobot {
 	
 	@Override
 	public void testPeriodic(){
-		log( "" + distSensor.getRangeInches()); // Send Distance to Driverstation
-		solenoidUpdate(true, breakOn, breakOff); // Set Solenoid to Close
+		liftBreak.set(Value.kReverse);
 	}
 
 	/**
@@ -311,14 +305,15 @@ public class Robot extends TimedRobot {
 	/**
 	 * This Section of the Code (autonomousInit) is just going to be doing some
 	 *  large sections of if and self with some switch cases to make the auto
-	 *  select the correct program to run depending on the ENV made on the feild.
+	 *  select the correct program to run depending on the ENV made on the field.
+	 */
+	/**
+	 * TODO: Fix Auto to work with the new Controls for the Lift and Pivot Arm. 
 	 */
 	@Override
 	public void autonomousInit() {
-		int baseLine = (128*EncoderIN);
-		//Robot.ClawMap.set(clawState); // Set the init State, Set asap.
-		
-		SmartDashboard.putBoolean("ClawOpenSignal", clawState);
+		int baseLine = (128*EncoderIN); // Set the Total Distance in the Encoder's Ticks by EncoderIN * the target distance. 
+		// Set the init State, Set asap.
 		
 		timer.reset();
 		timer.start();
@@ -330,13 +325,17 @@ public class Robot extends TimedRobot {
 		String autoSelect = autonomousCommand;
 		String robotPos = this.robotPos.getSelected();
 		
+		/**
+		 * TODO: REVIEW CODE, VERIFY DEFINITION NAMES ARE MATCHING FUNCTION AND DEVICE LOCATION
+		 */
 		// Setup the Static Systems and their Dependent Resources.
 		new DriveCTRL(MyDrive, leftDriveEncoder, rightDriveEncoder);
 		new TurnCTRL(MyDrive, gyroSensor);
-		new ArmCTRL(LiftMotor, encoderLift, upperLimit, lowerLimit);
-		new ArmCTRLHigh(LiftMotor, upperLimit, lowerLimit);
-		new LiftCTRL(ArmMotor, encoderArmMap, BreakMap);
 		new DistanceAlign(MyDrive, distSensor);
+		
+		new ArmCTRL(ArmMotor, encoderLift, upperLimit, lowerLimit); // Check
+		new ArmCTRLHigh(LiftMotor, upperLimit, lowerLimit); // Check
+		new LiftCTRL(LiftMotor, encoderArmMap, liftBreakMap); // Check
 		
 		/**
 		 * DriverStation.getInstance().getGameSpecificMessage() returns the Data of the Left or Right 
@@ -419,7 +418,7 @@ public class Robot extends TimedRobot {
 		// Auto for the Scale
 		// TODO: Make SCALE auto.
 		else if(autoSelect == ScaleAuto){
-			// If you are in POS Tne or POS Two
+			// If you are in POS One or POS Two
 			if(robotPos == ROBOT_POS_ONE_STR || robotPos == ROBOT_POS_THREE_STR){
 				
 				if(GamePos[1] == 'L') {
@@ -433,9 +432,9 @@ public class Robot extends TimedRobot {
 					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get to the Scale.
 					autoRuntime.addSequential( new TurnCTRL(0.5, 85) ); // Turn to the Right
 					
-					solenoidUpdate(false, breakOn, breakOff); // Break Off
+					solenoidUpdate(false, liftBreakOn, liftBreakOff); // Break Off
 					autoRuntime.addSequential( new ArmCTRLHigh(0.8) ); // Lift arm upto the Limit
-					solenoidUpdate(true, breakOn, breakOff); // Break On
+					solenoidUpdate(true, liftBreakOn, liftBreakOff); // Break On
 					
 					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 50) ); // Drive Forward to the Switch
@@ -462,7 +461,7 @@ public class Robot extends TimedRobot {
 		//   +-+-+-+-+-+-+
 		//   |S|W|I|T|C|H|
 		//   +-+-+-+-+-+-+
-		// Swtich Auto
+		// Switch Auto
 		else if(autoSelect == SwitchAuto){
 			
 			//   +-+-+-+-+
@@ -617,87 +616,189 @@ public class Robot extends TimedRobot {
 	 */
 	@Override
 	public void teleopPeriodic() {
-		// Driver B Button (XBOX)
+		// Driver B Button (Logitech 3D) [MyDrive]
 		// This Sets all of the Motors to a Stop State when Pressed.
-			double powerJoy = ( (-controllerDriver.getRawAxis(2)) + controllerDriver.getRawAxis(3) ); // Add the 2 values from the Controller Inputs
-			double turnJoy = controllerDriver.getRawAxis(0);
-			double crabJoy = controllerDriver.getRawAxis(4);
+			double powerJoy = -(controllerDriver.getRawAxis(1));
+			double turnJoy = controllerDriver.getRawAxis(2);
+			double crabJoy = controllerDriver.getRawAxis(0);
 			
+			// A button on XBOX and Thumb Button on Driver 3D Controller
 			if(controllerDriver.getRawButton(2) || controllerOperator.getRawButton(2) ){
+				SmartDashboard.putBoolean("UserStop", true);
 				MyDrive.DriveControl.stopMotor();
 			}
 			else {
+				SmartDashboard.putBoolean("UserStop", true);
+				// This will scale all of the values down.
+				if(!controllerDriver.getRawButton(1)) {
+					powerJoy = powerJoy * 0.6; // Make the Power half speed when not pushed.
+				}
+				
+				if(between(crabJoy, 0.2)) {
+					crabJoy = 0;
+				}
+				
+				
 				MyDrive.drive(powerJoy, turnJoy, crabJoy);
 			}
-		
+			
 			SmartDashboard.putNumber("DrivePower", powerJoy ); // Send Value to the Dashboard
+			SmartDashboard.putBoolean("LimitedPower", controllerDriver.getRawButton(1) );
 			SmartDashboard.putNumber("DriveTurn", turnJoy ); // Send Value to the Dashboard
 			SmartDashboard.putNumber("DriveCrab", crabJoy ); // Send Value to the Dashboard
 		
-		// Operator A Button (XBOX)
-		// This is to open and close the Solenoid
-			if(controllerOperator.getRawButton(1) || controllerDriver.getRawButton(1)){
-				clawState = false;
-				controllerDriver.setRumble(GenericHID.RumbleType.kLeftRumble, 0.5 );
-				SmartDashboard.putBoolean("ClawOpenSignal", clawState);
-				//solenoidUpdate(clawState, solenoid0, solenoid1); // Set the State
+		// Take in Cube and Push out Cube [IntakeMotor]
+		// Operator A Button (XBOX) and Trigger on Driver Controller (Logitech 3D)
+						
+			if( controllerOperator.getRawButton(4) ){
+				// Take in Cube
+				controllerDriver.setRumble(GenericHID.RumbleType.kLeftRumble, 0.4 );
+				SmartDashboard.putString("CubeIntake", "In");
+				IntakeMotor.set(-0.9);
+			}
+			else if( controllerOperator.getRawButton(1) ){
+				// Take in Cube
+				controllerDriver.setRumble(GenericHID.RumbleType.kLeftRumble, 0.4 );
+				SmartDashboard.putString("CubeIntake", "In");
+				IntakeMotor.set(0.9);
 			}
 			else {
-				clawState = true;
+				// No State, Normal
+				SmartDashboard.putString("CubeIntake", "Idle");
 				controllerDriver.setRumble(GenericHID.RumbleType.kLeftRumble, 0 );
-				SmartDashboard.putBoolean("ClawOpenSignal", clawState);
-				//solenoidUpdate(clawState, solenoid0, solenoid1); // Set the State
+				IntakeMotor.set(0);
 			}
 		
-		// Operator
-		// This is to control the Lift action and it's motor+break, CUBE HOLDER, ARMS
-			if(controllerOperator.getRawButton(3)){
-				
+		// Operator 
+		// Motor Arm Lift [liftBreakMap , LiftMotor]
+			double lValue = -(controllerOperator.getRawAxis(5));
+			// Negative Number is Up for the Motor Output
+			
+			if( lValue > 0.2){
 				// Up
-				if(encoderArm.getDistance() <= MaxHightEncoder || upperLimit.get() == true) {
+				if(encoderArm.getDistance() <= MaxHightEncoder || upperLimit.get() == true ) {
 					// Past Max Height
-					System.out.println("C: Max Height");
-					solenoidUpdate(true, breakOn, breakOff); // Break On
-					ArmMotor.setSpeed(0);
+					System.out.println("L: Up -- Max Height Reached.");
+					liftBreak.set(Value.kReverse); // Break On
+					if(!controllerOperator.getRawButton(5)) {
+						LiftMotor.setSpeed(0);
+					}
+					else {
+						LiftMotor.setSpeed( lValue );	
+					}
 				}
 				else {
 					// UP
-					System.out.println("C: Up");
-					solenoidUpdate(false, breakOn, breakOff);
-					ArmMotor.setSpeed(0.8);
+					System.out.println("L: Up");
+					liftBreak.set(Value.kForward); // Break Off
+					LiftMotor.setSpeed( lValue );
 				}
 			}
-			else if(controllerOperator.getRawButton(4)) {
-				// Down
+			else if(lValue < -0.2) {
+				// DOWN
 				// Keep in mind the Lower Limit Switch is Always True till the Arm Comes down and interupts the Light, Makes it False.
 				if(lowerLimit.get()){
+					// DOWN
 					System.out.println("L: Down");
 					// Light is on by Default (Reflecting and getting Light Normal, When the Arm is not down.)
-					solenoidUpdate(false, breakOn, breakOff);
-					ArmMotor.setSpeed(-0.7);
+					liftBreak.set(Value.kForward); // Break Off
+					LiftMotor.setSpeed( lValue );
 				}
 				else {
 					// Auto Limit and Reset for Calibration of the Lift Sensor
-					encoderArm.reset();  // Zero Sonsor
-					solenoidUpdate(true, breakOn, breakOff); // Break On
-					System.out.println("L: Dower -- Lower Limit Reached.");
+					// Reached Lower Limit
+					System.out.println("L: Down -- Lower Limit Reached.");
+					encoderArm.reset();  // Zero Sonar
+					liftBreak.set(Value.kReverse); // Break On
+					LiftMotor.setSpeed(0);
 				}
 			}
 			else {
-				solenoidUpdate(true, breakOn, breakOff); // Break On
-				ArmMotor.setSpeed(0);
+				// OFF, IDLE
+				
+				// User Manual Break Override
+				if(controllerOperator.getRawButton(5)) {
+					liftBreak.set(Value.kForward); // Break Off
+				}
+				else {
+					liftBreak.set(Value.kReverse); // Break On
+				}
+				
+				LiftMotor.setSpeed(0);
 			}
 
 		// Operator
-		// This is for the Arm Lift Control, LIFT ASSEBILY, THE CART DRIVE
-			double ArmValue = controllerOperator.getRawAxis(1)*0.6; // Scale Value input to only 60%
-			System.out.println("L: "+ArmValue);
-			LiftMotor.setSpeed(ArmValue);
+		// This is for the Arm Lift Control [armBreakMap, ArmMotor]
+			if( !between(controllerOperator.getRawAxis(1), 0.2) ) {
+				double CtrlArmValue = controllerOperator.getRawAxis(1)*0.75; // Scale Value input to only 60% (0-0.6)
+				System.out.println("L: "+CtrlArmValue);
+				CtrlArmValue = -(CtrlArmValue); // Fix Direction of the Lift Motor Output to go the correct direction
+				ArmMotor.setSpeed(CtrlArmValue);
+				armBreak.set(Value.kReverse); // Break Off
+			}
+			else {
+				// OFF, IDLE
+				
+				// User Manual Break Override
+				if(controllerOperator.getRawButton(6)) {
+					armBreak.set(Value.kReverse); // Break Off
+				}
+				else {
+					armBreak.set(Value.kForward); // Break On
+				}
+				ArmMotor.setSpeed(0.0);
+			}
+			
+		// Operator
+		// This is for the Pivot of the Arm
+			double l = flipperLocaiton.get();
+			System.out.println("P: " + l);
+			// Check if the RT axis on the XBox controller is past 0.2 to register,
+			//  This code will handle BOTH directions.
+			
+			double r = controllerOperator.getRawAxis(2) + -(controllerOperator.getRawAxis(3));
+			
+			if( !between(r, 0.2) ) {
+				// If the Operator Controller is Between 0.2 and Zero 
+				PivotMotor.setSpeed( r );
+			}
+			else {
+				PivotMotor.setSpeed(0);
+			}
 			
 		Scheduler.getInstance().run();
 	}
 	
 	
+	/**
+	 * 
+	 * @param Input
+	 * @param StartRange
+	 * @param EndRange
+	 * @return Boolean Value that tells if it is in between the range StartRange and EndRange.
+	 */
+	public boolean inRange(double Input, double StartRange, double EndRange) {
+		if(Input < StartRange && Input > EndRange) {
+	        return true;
+	    }
+		return false;
+	}
+	
+	/**
+	 * 
+	 * @param InValue
+	 * @param BetweenValue
+	 * @return Boolean Value that tells if it is in between the range from InValue and 0
+	 */
+	public boolean between(double InValue, double BetweenValue ) {
+		InValue = Math.abs(InValue);
+		BetweenValue = Math.abs(BetweenValue);
+		
+		if(InValue > BetweenValue) {
+			return false;
+		}
+		return true;
+	}
 	
 	public double getGyro(){
 		return this.gyroSensor.getAngle();
@@ -712,7 +813,6 @@ public class Robot extends TimedRobot {
 	public void zeroVGyro(){
 		this.VirtualOffset = -getGyro();
 	}
-	
 	
 	public int getDriveEncoder(){
 		return (int) Math.max(
@@ -739,8 +839,8 @@ public class Robot extends TimedRobot {
 	}
 	
 	/**
-	 * Used to set the State for the Solinoid Controls
-	 * @param NewState NewState The State to set on the solinoids
+	 * Used to set the State for the Solenoid Controls
+	 * @param NewState NewState The State to set on the solenoid
 	 * @param Port1 Solenoid When State is True it is Set to True
 	 * @param Port2 Port2 When State is True it is Set to False 
 	 */
