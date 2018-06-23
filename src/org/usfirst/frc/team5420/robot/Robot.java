@@ -317,274 +317,280 @@ public class Robot extends TimedRobot {
 		
 		timer.reset();
 		timer.start();
-		
 		CommandGroup autoRuntime = new CommandGroup();
-		compressor0.setClosedLoopControl(true);
-		autonomousCommand = this.chooser.getSelected();
-		SmartDashboard.putString("AutoSelect", autonomousCommand);
-		String autoSelect = autonomousCommand;
-		String robotPos = this.robotPos.getSelected();
 		
-		/**
-		 * TODO: REVIEW CODE, VERIFY DEFINITION NAMES ARE MATCHING FUNCTION AND DEVICE LOCATION
-		 */
-		// Setup the Static Systems and their Dependent Resources.
-		new DriveCTRL(MyDrive, leftDriveEncoder, rightDriveEncoder);
-		new TurnCTRL(MyDrive, gyroSensor);
-		new DistanceAlign(MyDrive, distSensor);
-		
-		new ArmCTRL(ArmMotor, encoderLift, upperLimit, lowerLimit); // Check
-		new ArmCTRLHigh(LiftMotor, upperLimit, lowerLimit); // Check
-		new LiftCTRL(LiftMotor, encoderArmMap, liftBreakMap); // Check
-		
-		/**
-		 * DriverStation.getInstance().getGameSpecificMessage() returns the Data of the Left or Right 
-		 *      Direction of your Color on the Switch Scale Switch.
-		 * The First Char of the String will ALWAYS be the once closest to your drive station wall.
-		 * 
-		 * if( GamePos[0] == 'L' ) // The Close Switch Left Side is your Color.
-		 * if( GamePos[1] == 'L' ) // Scale, Center Field, Left Side
-		 * if( GamePos[2] == 'L' ) // The Far Switch Left Side is your Color.
-		 */
-		this.GamePos = DriverStation.getInstance().getGameSpecificMessage().toUpperCase().toCharArray();
-
-		// Add the Timer Delay Action/Command
-		autoRuntime.addSequential( new WaitCTRL( (int) SmartDashboard.getNumber("AutoDelay", 0)) );
-		
-		///////////////////////////////////////////////////////////////////
-		/////////////  STAGE 1 ////////////////////////////////////////////
-		///////////////////////////////////////////////////////////////////
-
-		//   +-+-+-+ +-+-+-+-+
-		//   |P|R|E| |E|X|E|C|
-		//   +-+-+-+ +-+-+-+-+
-		// This is used to find out if the scale is our color
-		//  then to see if the switch is out color then RESET the auto Accordingly.
-		if( autonomousCommand == ScaleSwitchAuto ){
-			System.out.println("Auto Decisioning Auto...");
+		// This is a FIX for when the Driver Station does not load and the Auto Command Data is not set.
+		try {
 			
-			// Left Side
-			if(robotPos == ROBOT_POS_ONE_STR){
-				// Scale Detection
-				if(GamePos[1] == 'L'){
-					autonomousCommand = ScaleAuto;
-				}
+			compressor0.setClosedLoopControl(true);
+			autonomousCommand = this.chooser.getSelected();
+			SmartDashboard.putString("AutoSelect", autonomousCommand);
+			String autoSelect = autonomousCommand;
+			String robotPos = this.robotPos.getSelected();
+			
+			/**
+			 * TODO: REVIEW CODE, VERIFY DEFINITION NAMES ARE MATCHING FUNCTION AND DEVICE LOCATION
+			 */
+			// Setup the Static Systems and their Dependent Resources.
+			new DriveCTRL(MyDrive, leftDriveEncoder, rightDriveEncoder);
+			new TurnCTRL(MyDrive, gyroSensor);
+			new DistanceAlign(MyDrive, distSensor);
+			
+			new ArmCTRL(ArmMotor, encoderLift, upperLimit, lowerLimit); // Check
+			new ArmCTRLHigh(LiftMotor, upperLimit, lowerLimit); // Check
+			new LiftCTRL(LiftMotor, encoderArmMap, liftBreakMap); // Check
+			
+			/**
+			 * DriverStation.getInstance().getGameSpecificMessage() returns the Data of the Left or Right 
+			 *      Direction of your Color on the Switch Scale Switch.
+			 * The First Char of the String will ALWAYS be the once closest to your drive station wall.
+			 * 
+			 * if( GamePos[0] == 'L' ) // The Close Switch Left Side is your Color.
+			 * if( GamePos[1] == 'L' ) // Scale, Center Field, Left Side
+			 * if( GamePos[2] == 'L' ) // The Far Switch Left Side is your Color.
+			 */
+			this.GamePos = DriverStation.getInstance().getGameSpecificMessage().toUpperCase().toCharArray();
+	
+			// Add the Timer Delay Action/Command
+			autoRuntime.addSequential( new WaitCTRL( (int) SmartDashboard.getNumber("AutoDelay", 0)) );
+			
+			///////////////////////////////////////////////////////////////////
+			/////////////  STAGE 1 ////////////////////////////////////////////
+			///////////////////////////////////////////////////////////////////
+	
+			//   +-+-+-+ +-+-+-+-+
+			//   |P|R|E| |E|X|E|C|
+			//   +-+-+-+ +-+-+-+-+
+			// This is used to find out if the scale is our color
+			//  then to see if the switch is out color then RESET the auto Accordingly.
+			if( autonomousCommand == ScaleSwitchAuto ){
+				System.out.println("Auto Decisioning Auto...");
 				
-				// Switch Detection
-				else if( GamePos[0] == 'L' ){
-					autonomousCommand = SwitchAuto;
-				}
-			}
-			
-			else if (robotPos == ROBOT_POS_TWO_STR) {
-				// Do nothing.
-				autonomousCommand = NoAuto;
-				log("(CENTER) Robot on the Left, Robot on the Right, Stuck in the Middle with you!");
-			}
-			
-			// Right Side
-			else if (robotPos == ROBOT_POS_THREE_STR) {
-				// Scale Detection
-				if(GamePos[1] == 'R'){
-					autonomousCommand = ScaleAuto;
-				}
-				
-				// Switch Detection
-				else if( GamePos[0] == 'R' ){
-					autonomousCommand = SwitchAuto;
-				}
-			}
-			
-			log("Auto Select: " + autonomousCommand);
-		} // End "ScaleSwitchAuto" Selection Process.
-		
-		///////////////////////////////////////////////////////////////////
-		/////////////  STAGE 2 ////////////////////////////////////////////
-		///////////////////////////////////////////////////////////////////
-		
-		//   +-+-+ +-+-+-+-+
-		//   |N|O| |A|U|T|O|
-		//   +-+-+ +-+-+-+-+
-		if(autonomousCommand == NoAuto){
-			System.out.println("HUMAN: :'( Told not to do an Auto. [NoAuto]");
-			leftDriveEncoder.reset();
-			rightDriveEncoder.reset();
-		} // End "NoAuto" Selection Process.
-		
-
-		//   +-+-+-+-+-+
-		//   |S|C|A|L|E|
-		//   +-+-+-+-+-+
-		// Auto for the Scale
-		// TODO: Make SCALE auto.
-		else if(autoSelect == ScaleAuto){
-			// If you are in POS One or POS Two
-			if(robotPos == ROBOT_POS_ONE_STR || robotPos == ROBOT_POS_THREE_STR){
-				
-				if(GamePos[1] == 'L') {
-					log("POS 1/3 - Left Color");
+				// Left Side
+				if(robotPos == ROBOT_POS_ONE_STR){
+					// Scale Detection
+					if(GamePos[1] == 'L'){
+						autonomousCommand = ScaleAuto;
+					}
 					
-					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
-					autoRuntime.addSequential( new WaitCTRL(0.5) ); // Wait one Sec
-					autoRuntime.addSequential( new DistanceAlign(0.6, 34) ); // Mesure from the Switch, 24in from the Switch past the baseline.
-
-					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get to the Scale.
-					autoRuntime.addSequential( new TurnCTRL(0.5, 85) ); // Turn to the Right
-					
-					solenoidUpdate(false, liftBreakOn, liftBreakOff); // Break Off
-					autoRuntime.addSequential( new ArmCTRLHigh(0.8) ); // Lift arm upto the Limit
-					solenoidUpdate(true, liftBreakOn, liftBreakOff); // Break On
-					
-					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 50) ); // Drive Forward to the Switch
-					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-					//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
-					autoRuntime.addSequential( new DriveCTRL(-0.5, 0, 0, -50) ); // Drive Backwards from the Switch
-					
-				}
-				else if(GamePos[1] == 'R') {
-					log("POS 1/3 - Right Color");
+					// Switch Detection
+					else if( GamePos[0] == 'L' ){
+						autonomousCommand = SwitchAuto;
+					}
 				}
 				
-			}
-			else if(robotPos == ROBOT_POS_TWO_STR){
-				log("POS 2 - ERROR");
-				System.out.println("HUMAN: Not in Left or Right Slot, Can't Auto!. [Scale>Center]");
-			}
-			
-			
-			
-		} // End "ScaleAuto" Selection Process.
-		
-
-		//   +-+-+-+-+-+-+
-		//   |S|W|I|T|C|H|
-		//   +-+-+-+-+-+-+
-		// Switch Auto
-		else if(autoSelect == SwitchAuto){
-			
-			//   +-+-+-+-+
-			//   |L|E|F|T|
-			//   +-+-+-+-+
-			
-			// If our Color is on the LEFT side and we are in POS 1 (Right Side of the Feild)
-			// Be sure to Check the Color of the Scale or Switch before running and the Placement.
-			if(GamePos[0] == 'L' && robotPos == ROBOT_POS_ONE_STR){
+				else if (robotPos == ROBOT_POS_TWO_STR) {
+					// Do nothing.
+					autonomousCommand = NoAuto;
+					log("(CENTER) Robot on the Left, Robot on the Right, Stuck in the Middle with you!");
+				}
 				
-				log("POS 1 - Left Color");
+				// Right Side
+				else if (robotPos == ROBOT_POS_THREE_STR) {
+					// Scale Detection
+					if(GamePos[1] == 'R'){
+						autonomousCommand = ScaleAuto;
+					}
+					
+					// Switch Detection
+					else if( GamePos[0] == 'R' ){
+						autonomousCommand = SwitchAuto;
+					}
+				}
 				
-				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
-				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				autoRuntime.addSequential( new ArmCTRL(0.8, 380) ); // Lift arm upto the target 100
-				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				autoRuntime.addSequential( new TurnCTRL(0.5, 85) ); // Turn to the Right
-				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 100) ); // Drive Forward to the Switch
-				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
-				autoRuntime.addSequential( new DriveCTRL(-0.5, 0, 0, -50) ); // Drive Backwards from the Switch
-			}
+				log("Auto Select: " + autonomousCommand);
+			} // End "ScaleSwitchAuto" Selection Process.
+			
+			///////////////////////////////////////////////////////////////////
+			/////////////  STAGE 2 ////////////////////////////////////////////
+			///////////////////////////////////////////////////////////////////
+			
+			//   +-+-+ +-+-+-+-+
+			//   |N|O| |A|U|T|O|
+			//   +-+-+ +-+-+-+-+
+			if(autonomousCommand == NoAuto){
+				System.out.println("HUMAN: :'( Told not to do an Auto. [NoAuto]");
+				leftDriveEncoder.reset();
+				rightDriveEncoder.reset();
+			} // End "NoAuto" Selection Process.
 			
 	
 			//   +-+-+-+-+-+
-			//   |R|I|G|H|T|
+			//   |S|C|A|L|E|
 			//   +-+-+-+-+-+
-
-			// If our Color is on the RIGHT side and we are in POS 3 (Right Side of the Feild)
-			// Be sure to Check the Color of the Scale or Switch before running and the Placement.
-			else if(GamePos[0] == 'R' && robotPos == ROBOT_POS_THREE_STR){
-				
-				log("POS 3 - Right Color");
-				
-				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
-				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				autoRuntime.addSequential( new ArmCTRL(0.8, 380) ); // Lift arm upto the target 100
-				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				autoRuntime.addSequential( new TurnCTRL(0.5, -85) ); // Turn to the Right
-				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 100) ); // Drive Forward to the Switch
-				autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-				//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
-				autoRuntime.addSequential( new DriveCTRL(-0.5, 0, 0, -50) ); // Drive Backwards from the Switch
-			}
-			
-			// CENTER AUTO, Dual Auto Switch Case
-			// TODO: Create Cetner Auto Options and the Controls
-			else if(robotPos == ROBOT_POS_TWO_STR){
-				
-				if(GamePos[0] == 'L'){
-					// If our Color in on the left side.
-					
-					log("POS 2 - Left Color");
-					
-					autoRuntime.addSequential( new DriveCTRL(0, 0, 0.5, -40) ); // Crab Left, Color is on the Left
-					autoRuntime.addSequential( new LiftCTRL(0.5, 3000) ); // Lift arm upto the target 3000
-					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 500) ); // Drive Forward to the Switch
-					//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
-					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, -500) ); // Drive Backwards from the Switch
-				}
-				else if(GamePos[0] == 'R') {
-					// If out Color is on the right side.
-					
-					log("POS 2 - Right Color");
-					
-					autoRuntime.addSequential( new DriveCTRL(0, 0, 0.5, -80) ); // Crab Left, Color is on the Right
-					autoRuntime.addSequential( new LiftCTRL(0.5, 3000) ); // Lift arm upto the target 3000
-					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 500) ); // Drive Forward to the Switch
-					//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
-					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, -500) ); // Drive Backwards from the Switch
-				}
-				
-			}
-			
-			else {
-				// If no Case Matches, Figure out if you can drive the baseline.
-				
+			// Auto for the Scale
+			// TODO: Make SCALE auto.
+			else if(autoSelect == ScaleAuto){
+				// If you are in POS One or POS Two
 				if(robotPos == ROBOT_POS_ONE_STR || robotPos == ROBOT_POS_THREE_STR){
-					// Run baseline auto to get Points
+					
+					if(GamePos[1] == 'L') {
+						log("POS 1/3 - Left Color");
+						
+						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
+						autoRuntime.addSequential( new WaitCTRL(0.5) ); // Wait one Sec
+						autoRuntime.addSequential( new DistanceAlign(0.6, 34) ); // Mesure from the Switch, 24in from the Switch past the baseline.
+	
+						autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get to the Scale.
+						autoRuntime.addSequential( new TurnCTRL(0.5, 85) ); // Turn to the Right
+						
+						solenoidUpdate(false, liftBreakOn, liftBreakOff); // Break Off
+						autoRuntime.addSequential( new ArmCTRLHigh(0.8) ); // Lift arm upto the Limit
+						solenoidUpdate(true, liftBreakOn, liftBreakOff); // Break On
+						
+						autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 50) ); // Drive Forward to the Switch
+						autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+						//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
+						autoRuntime.addSequential( new DriveCTRL(-0.5, 0, 0, -50) ); // Drive Backwards from the Switch
+						
+					}
+					else if(GamePos[1] == 'R') {
+						log("POS 1/3 - Right Color");
+					}
+					
+				}
+				else if(robotPos == ROBOT_POS_TWO_STR){
+					log("POS 2 - ERROR");
+					System.out.println("HUMAN: Not in Left or Right Slot, Can't Auto!. [Scale>Center]");
+				}
+				
+				
+				
+			} // End "ScaleAuto" Selection Process.
+			
+	
+			//   +-+-+-+-+-+-+
+			//   |S|W|I|T|C|H|
+			//   +-+-+-+-+-+-+
+			// Switch Auto
+			else if(autoSelect == SwitchAuto){
+				
+				//   +-+-+-+-+
+				//   |L|E|F|T|
+				//   +-+-+-+-+
+				
+				// If our Color is on the LEFT side and we are in POS 1 (Right Side of the Feild)
+				// Be sure to Check the Color of the Scale or Switch before running and the Placement.
+				if(GamePos[0] == 'L' && robotPos == ROBOT_POS_ONE_STR){
+					
+					log("POS 1 - Left Color");
+					
 					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
+					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+					autoRuntime.addSequential( new ArmCTRL(0.8, 380) ); // Lift arm upto the target 100
+					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+					autoRuntime.addSequential( new TurnCTRL(0.5, 85) ); // Turn to the Right
+					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 100) ); // Drive Forward to the Switch
+					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+					//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
+					autoRuntime.addSequential( new DriveCTRL(-0.5, 0, 0, -50) ); // Drive Backwards from the Switch
 				}
+				
+		
+				//   +-+-+-+-+-+
+				//   |R|I|G|H|T|
+				//   +-+-+-+-+-+
+	
+				// If our Color is on the RIGHT side and we are in POS 3 (Right Side of the Feild)
+				// Be sure to Check the Color of the Scale or Switch before running and the Placement.
+				else if(GamePos[0] == 'R' && robotPos == ROBOT_POS_THREE_STR){
+					
+					log("POS 3 - Right Color");
+					
+					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
+					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+					autoRuntime.addSequential( new ArmCTRL(0.8, 380) ); // Lift arm upto the target 100
+					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+					autoRuntime.addSequential( new TurnCTRL(0.5, -85) ); // Turn to the Right
+					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 100) ); // Drive Forward to the Switch
+					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+					//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
+					autoRuntime.addSequential( new DriveCTRL(-0.5, 0, 0, -50) ); // Drive Backwards from the Switch
+				}
+				
+				// CENTER AUTO, Dual Auto Switch Case
+				// TODO: Create Cetner Auto Options and the Controls
+				else if(robotPos == ROBOT_POS_TWO_STR){
+					
+					if(GamePos[0] == 'L'){
+						// If our Color in on the left side.
+						
+						log("POS 2 - Left Color");
+						
+						autoRuntime.addSequential( new DriveCTRL(0, 0, 0.5, -40) ); // Crab Left, Color is on the Left
+						autoRuntime.addSequential( new LiftCTRL(0.5, 3000) ); // Lift arm upto the target 3000
+						autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 500) ); // Drive Forward to the Switch
+						//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
+						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, -500) ); // Drive Backwards from the Switch
+					}
+					else if(GamePos[0] == 'R') {
+						// If out Color is on the right side.
+						
+						log("POS 2 - Right Color");
+						
+						autoRuntime.addSequential( new DriveCTRL(0, 0, 0.5, -80) ); // Crab Left, Color is on the Right
+						autoRuntime.addSequential( new LiftCTRL(0.5, 3000) ); // Lift arm upto the target 3000
+						autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 500) ); // Drive Forward to the Switch
+						//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
+						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, -500) ); // Drive Backwards from the Switch
+					}
+					
+				}
+				
 				else {
-					log("Can not even do a Baseline auto.");
+					// If no Case Matches, Figure out if you can drive the baseline.
+					
+					if(robotPos == ROBOT_POS_ONE_STR || robotPos == ROBOT_POS_THREE_STR){
+						// Run baseline auto to get Points
+						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
+					}
+					else {
+						log("Can not even do a Baseline auto.");
+					}
+					
+					
+				}
+				
+			} // End "Switch" Selection Process.
+			
+	
+			//   +-+-+-+-+-+-+-+-+
+			//   |B|A|S|E|L|I|N|E|
+			//   +-+-+-+-+-+-+-+-+
+			// Drive Past the Base Line
+			else if(autoSelect == BaseLine){
+				
+				// Drive past the Baseline if not Center
+				if(robotPos == ROBOT_POS_ONE_STR || robotPos == ROBOT_POS_THREE_STR){
+					log("POS 1/3 - Unknown Side, Baseline");
+					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) );
+				}
+				
+				else if ( robotPos == ROBOT_POS_TWO_STR){
+					log("POS 2 - ERRROR");
+					System.out.println("HUMAN: Not in Left or Right Slot, Can't Auto!. [Baseline>Center]");
 				}
 				
 				
+			} // End "Baseline" Selection Process.
+		
+			else {
+				log("Unknown Auto Routine for auto \"" + autoSelect + "\", POS: " + robotPos );
 			}
 			
-		} // End "Switch" Selection Process.
-		
-
-		//   +-+-+-+-+-+-+-+-+
-		//   |B|A|S|E|L|I|N|E|
-		//   +-+-+-+-+-+-+-+-+
-		// Drive Past the Base Line
-		else if(autoSelect == BaseLine){
-			
-			// Drive past the Baseline if not Center
-			if(robotPos == ROBOT_POS_ONE_STR || robotPos == ROBOT_POS_THREE_STR){
-				log("POS 1/3 - Unknown Side, Baseline");
-				autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) );
-			}
-			
-			else if ( robotPos == ROBOT_POS_TWO_STR){
-				log("POS 2 - ERRROR");
-				System.out.println("HUMAN: Not in Left or Right Slot, Can't Auto!. [Baseline>Center]");
-			}
-			
-			
-		} // End "Baseline" Selection Process.
-		
-		
-		else {
-			log("Unknown Auto Routine for auto \"" + autoSelect + "\", POS: " + robotPos );
+			SmartDashboard.putString("AutoSelect", autonomousCommand);
+		}
+		catch ( NullPointerException e) {
+			System.out.println("AUTO:  NO POINTER");
 		}
 		
 		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		
-		SmartDashboard.putString("AutoSelect", autonomousCommand);
 		
 		// Schedule the autonomous command
 		if (autoRuntime != null)
