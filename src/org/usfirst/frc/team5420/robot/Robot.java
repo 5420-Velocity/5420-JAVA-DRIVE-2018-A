@@ -103,7 +103,6 @@ public class Robot extends TimedRobot {
 	public static EncoderMap encoderArmMap; // Encoder Map Class, Has offset and the Get Controls. 
 	public static DigitalInput upperLimit, lowerLimit;
 	public static DigitalInput flipperUp, flipperDown;
-	public static AnalogPotentiometer flipperLocaiton;
 	
 	public static Joystick controllerDriver, controllerOperator;
 	public static VictorSP LiftMotor, ArmMotor, PivotMotor, IntakeMotor;
@@ -206,8 +205,6 @@ public class Robot extends TimedRobot {
 		upperLimit = new DigitalInput(16); // DIO
 		flipperUp = new DigitalInput(25); // Mount Sensor
 		flipperDown = new DigitalInput(24); // Mount Sensor 
-		
-		flipperLocaiton = new AnalogPotentiometer(0);
 		
 		LiftMotor = new VictorSP(1); // PWM
 		ArmMotor = new VictorSP(2); // PWM
@@ -638,6 +635,7 @@ public class Robot extends TimedRobot {
 				// This will scale all of the values down.
 				if(!controllerDriver.getRawButton(1)) {
 					powerJoy = powerJoy * 0.6; // Make the Power half speed when not pushed.
+					turnJoy = turnJoy * 0.6;
 				}
 				
 				if(between(crabJoy, 0.2)) {
@@ -658,20 +656,20 @@ public class Robot extends TimedRobot {
 						
 			if( controllerOperator.getRawButton(4) ){
 				// Take in Cube
-				controllerDriver.setRumble(GenericHID.RumbleType.kLeftRumble, 0.4 );
+				controllerOperator.setRumble(GenericHID.RumbleType.kLeftRumble, 0.4 );
 				SmartDashboard.putString("CubeIntake", "In");
 				IntakeMotor.set(-0.9);
 			}
 			else if( controllerOperator.getRawButton(1) ){
 				// Take in Cube
-				controllerDriver.setRumble(GenericHID.RumbleType.kLeftRumble, 0.4 );
+				controllerOperator.setRumble(GenericHID.RumbleType.kLeftRumble, 0.4 );
 				SmartDashboard.putString("CubeIntake", "In");
 				IntakeMotor.set(0.9);
 			}
 			else {
 				// No State, Normal
 				SmartDashboard.putString("CubeIntake", "Idle");
-				controllerDriver.setRumble(GenericHID.RumbleType.kLeftRumble, 0 );
+				controllerOperator.setRumble(GenericHID.RumbleType.kLeftRumble, 0 );
 				IntakeMotor.set(0);
 			}
 		
@@ -722,8 +720,8 @@ public class Robot extends TimedRobot {
 			else {
 				// OFF, IDLE
 				
-				// User Manual Break Override
-				if(controllerOperator.getRawButton(5)) {
+				// User Manual Break Override, Switched from Button 5 to Button 6
+				if(controllerOperator.getRawButton(6)) {
 					liftBreak.set(Value.kForward); // Break Off
 				}
 				else {
@@ -745,31 +743,14 @@ public class Robot extends TimedRobot {
 			else {
 				// OFF, IDLE
 				
-				// User Manual Break Override
-				if(controllerOperator.getRawButton(6)) {
+				// User Manual Break Override, Switched from Button 6 to Button 5
+				if(controllerOperator.getRawButton(5)) {
 					armBreak.set(Value.kReverse); // Break Off
 				}
 				else {
 					armBreak.set(Value.kForward); // Break On
 				}
 				ArmMotor.setSpeed(0.0);
-			}
-			
-		// Operator
-		// This is for the Pivot of the Arm
-			double l = flipperLocaiton.get();
-			System.out.println("P: " + l);
-			// Check if the RT axis on the XBox controller is past 0.2 to register,
-			//  This code will handle BOTH directions.
-			
-			double r = controllerOperator.getRawAxis(2) + -(controllerOperator.getRawAxis(3));
-			
-			if( !between(r, 0.2) ) {
-				// If the Operator Controller is Between 0.2 and Zero 
-				PivotMotor.setSpeed( r );
-			}
-			else {
-				PivotMotor.setSpeed(0);
 			}
 			
 		Scheduler.getInstance().run();
