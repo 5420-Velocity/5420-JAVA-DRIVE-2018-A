@@ -7,8 +7,10 @@
 
 package org.usfirst.frc.team5420.robot;
 
+import edu.wpi.cscore.UsbCamera;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.AnalogPotentiometer;
+import edu.wpi.first.wpilibj.CameraServer;
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
@@ -77,15 +79,15 @@ public class Robot extends TimedRobot {
 	public static OI jio;
 	String autonomousCommand;
 	//SendableChooser<Command> chooser = new SendableChooser<>();
-	public SendableChooser<String> chooser = new SendableChooser<>();
-	public SendableChooser<String> robotPos = new SendableChooser<>();
+	public SendableChooser<String> chooser = new SendableChooser<>(); // Auto Select
+	public SendableChooser<String> robotPos = new SendableChooser<>(); // Position on the Field
 	
 	// Setup of the Devices in the Code.
 	Timer timer = new Timer();
 	public ADXRS450_Gyro gyroSensor;
 	
-	//public static UsbCamera camera;
-	public static CameraLines linesCam = null;
+	public static UsbCamera camera;
+	//public static CameraLines linesCam = null;
 	public static int width = 640; // Camera RESOLUTION
 	public static int height = 480; // Camera RESOLUTION
 	
@@ -165,10 +167,10 @@ public class Robot extends TimedRobot {
 		robotPos.addObject("Right (3)", ROBOT_POS_THREE_STR);
 		SmartDashboard.putData("Position", robotPos);
 		
-		//camera = CameraServer.getInstance().startAutomaticCapture();
-		//camera.setExposureAuto();
-		//camera.setResolution(Robot.width, Robot.height);
-		linesCam = new CameraLines(); // Create Camera
+		camera = CameraServer.getInstance().startAutomaticCapture();
+		camera.setExposureAuto();
+		camera.setResolution(Robot.width, Robot.height);
+		//linesCam = new CameraLines(); // Create Camera
 		
 		color = DriverStation.getInstance().getAlliance();
 		time = DriverStation.getInstance().getMatchTime();
@@ -426,7 +428,7 @@ public class Robot extends TimedRobot {
 						
 						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
 						autoRuntime.addSequential( new WaitCTRL(0.5) ); // Wait one Sec
-						autoRuntime.addSequential( new DistanceAlign(0.6, 34) ); // Mesure from the Switch, 24in from the Switch past the baseline.
+						autoRuntime.addSequential( new DistanceAlign(0.6, 34) ); // Measure from the Switch, 24in from the Switch past the baseline.
 	
 						autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get to the Scale.
@@ -468,7 +470,7 @@ public class Robot extends TimedRobot {
 				//   |L|E|F|T|
 				//   +-+-+-+-+
 				
-				// If our Color is on the LEFT side and we are in POS 1 (Right Side of the Feild)
+				// If our Color is on the LEFT side and we are in POS 1 (Right Side of the Field)
 				// Be sure to Check the Color of the Scale or Switch before running and the Placement.
 				if(GamePos[0] == 'L' && robotPos == ROBOT_POS_ONE_STR){
 					
@@ -476,7 +478,7 @@ public class Robot extends TimedRobot {
 					
 					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
 					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-					autoRuntime.addSequential( new ArmCTRL(0.8, 380) ); // Lift arm upto the target 100
+					autoRuntime.addSequential( new ArmCTRL(0.8, 380) ); // Lift arm up to the target 100
 					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 					autoRuntime.addSequential( new TurnCTRL(0.5, 85) ); // Turn to the Right
 					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
@@ -491,7 +493,7 @@ public class Robot extends TimedRobot {
 				//   |R|I|G|H|T|
 				//   +-+-+-+-+-+
 	
-				// If our Color is on the RIGHT side and we are in POS 3 (Right Side of the Feild)
+				// If our Color is on the RIGHT side and we are in POS 3 (Right Side of the Field)
 				// Be sure to Check the Color of the Scale or Switch before running and the Placement.
 				else if(GamePos[0] == 'R' && robotPos == ROBOT_POS_THREE_STR){
 					
@@ -499,7 +501,7 @@ public class Robot extends TimedRobot {
 					
 					autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
 					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-					autoRuntime.addSequential( new ArmCTRL(0.8, 380) ); // Lift arm upto the target 100
+					autoRuntime.addSequential( new ArmCTRL(0.8, 380) ); // Lift arm up to the target 100
 					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 					autoRuntime.addSequential( new TurnCTRL(0.5, -85) ); // Turn to the Right
 					autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
@@ -510,7 +512,7 @@ public class Robot extends TimedRobot {
 				}
 				
 				// CENTER AUTO, Dual Auto Switch Case
-				// TODO: Create Cetner Auto Options and the Controls
+				// TODO: Create Center Auto Options and the Controls
 				else if(robotPos == ROBOT_POS_TWO_STR){
 					
 					if(GamePos[0] == 'L'){
@@ -519,7 +521,7 @@ public class Robot extends TimedRobot {
 						log("POS 2 - Left Color");
 						
 						autoRuntime.addSequential( new DriveCTRL(0, 0, 0.5, -40) ); // Crab Left, Color is on the Left
-						autoRuntime.addSequential( new LiftCTRL(0.5, 3000) ); // Lift arm upto the target 3000
+						autoRuntime.addSequential( new LiftCTRL(0.5, 3000) ); // Lift arm up to the target 3000
 						autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 500) ); // Drive Forward to the Switch
 						//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
@@ -531,7 +533,7 @@ public class Robot extends TimedRobot {
 						log("POS 2 - Right Color");
 						
 						autoRuntime.addSequential( new DriveCTRL(0, 0, 0.5, -80) ); // Crab Left, Color is on the Right
-						autoRuntime.addSequential( new LiftCTRL(0.5, 3000) ); // Lift arm upto the target 3000
+						autoRuntime.addSequential( new LiftCTRL(0.5, 3000) ); // Lift arm up to the target 3000
 						autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 500) ); // Drive Forward to the Switch
 						//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
@@ -603,6 +605,9 @@ public class Robot extends TimedRobot {
 		Scheduler.getInstance().run();
 	}
 
+	/**
+	 * Set Init Values and Settings for Teleop
+	 */
 	@Override
 	public void teleopInit() {
 		this.MyDrive.DriveControl.setSafetyEnabled(true); // Shuts off motors when their outputs aren't updated often enough.
@@ -700,7 +705,7 @@ public class Robot extends TimedRobot {
 			}
 			else if(lValue < -0.2) {
 				// DOWN
-				// Keep in mind the Lower Limit Switch is Always True till the Arm Comes down and interupts the Light, Makes it False.
+				// Keep in mind the Lower Limit Switch is Always True till the Arm Comes down and interrupts the Light, Makes it False.
 				if(lowerLimit.get()){
 					// DOWN
 					System.out.println("L: Down");
@@ -787,6 +792,10 @@ public class Robot extends TimedRobot {
 		return true;
 	}
 	
+	/**
+	 * Return the Gyro or VGyro Value
+	 * @return Boolean Value
+	 */
 	public double getGyro(){
 		return this.gyroSensor.getAngle();
 	}
@@ -794,6 +803,10 @@ public class Robot extends TimedRobot {
 		return ( this.gyroSensor.getAngle() + this.VirtualOffset);
 	}
 	
+	/**
+	 * Zero the Gyro Controls
+	 * Zero the Virtual Gyro Controls
+	 */
 	public void zeroGyro(){
 		this.gyroSensor.reset();
 	}
@@ -801,6 +814,10 @@ public class Robot extends TimedRobot {
 		this.VirtualOffset = -getGyro();
 	}
 	
+	/**
+	 * Returns the Max Distance of the robot based on the left or right encoder.
+	 * @return Int Encoder Value
+	 */
 	public int getDriveEncoder(){
 		return (int) Math.max(
 			Robot.leftDriveEncoder.getDistance(),
@@ -836,6 +853,10 @@ public class Robot extends TimedRobot {
 		Port2.set(!NewState);
 	}
 	
+	/**
+	 * 
+	 * @param Log Text to Log
+	 */
 	public void log(String Log){
 		System.out.println(Log);
 	}
