@@ -92,8 +92,8 @@ public class Robot extends TimedRobot {
 	public static int height = 480; // Camera RESOLUTION
 	
 	public static Compressor compressor0;
-	public static Solenoid liftBreakOn, liftBreakOff, armBreakOn, armBreakOff;
-	public static SolenoidMap armBreak, liftBreak;
+	public static Solenoid liftBreakOn, liftBreakOff, armBreakOn, armBreakOff, clawOpen, clawClose;
+	public static SolenoidMap armBreak, liftBreak, clawPinch;
 	public static SolenoidMap liftBreakMap, armBreakMap;
 	
 	public static Ultrasonic distSensor; 
@@ -185,9 +185,12 @@ public class Robot extends TimedRobot {
 		armBreakOff = new Solenoid(2);
 		liftBreakOn = new Solenoid(3); 
 		liftBreakOff = new Solenoid(4);
+		clawOpen = new Solenoid(5);
+		clawClose = new Solenoid(6);
 		
 		armBreak = new SolenoidMap( armBreakOn, armBreakOff ); // The Lift Break Solenoids
 		liftBreak =  new SolenoidMap(liftBreakOn, liftBreakOff); // The Arm Break Solenoids
+		clawPinch =  new SolenoidMap(clawOpen, clawClose); // The Arm Break Solenoids
 		
 		distSensor = new Ultrasonic(0,1); // creates the ultrasonic object and assigns ultrasonic to be an ultrasonic sensor which uses DigitalOutput 1 for 
 		
@@ -264,6 +267,7 @@ public class Robot extends TimedRobot {
 		if(SmartDashboard.getBoolean("ResendAutoCommands", false) == true) {
 			SmartDashboard.putData("AutoChoices", chooser); // Resend the AUTO Select
 			SmartDashboard.putData("Position", robotPos); // Resend the POSITION Select
+			
 			SmartDashboard.putBoolean("ResendAutoCommands", false); // Rest Checkbox
 		}
 		
@@ -287,7 +291,8 @@ public class Robot extends TimedRobot {
 	
 	@Override
 	public void testPeriodic(){
-		liftBreak.set(Value.kReverse);
+		liftBreak.set(Value.kReverse); // Set the Lift Break to be On
+		clawPinch.set(Value.kForward); // Set the Pinch to be Close
 	}
 
 	/**
@@ -630,7 +635,7 @@ public class Robot extends TimedRobot {
 			double turnJoy = controllerDriver.getRawAxis(2);
 			double crabJoy = controllerDriver.getRawAxis(0);
 			
-			// A button on XBOX and Thumb Button on Driver 3D Controller
+		// A button on XBOX and Thumb Button on Driver 3D Controller
 			if(controllerDriver.getRawButton(2) || controllerOperator.getRawButton(2) ){
 				SmartDashboard.putBoolean("UserStop", true);
 				MyDrive.DriveControl.stopMotor();
@@ -658,7 +663,6 @@ public class Robot extends TimedRobot {
 		
 		// Take in Cube and Push out Cube [IntakeMotor]
 		// Operator A Button (XBOX) and Trigger on Driver Controller (Logitech 3D)
-						
 			if( controllerOperator.getRawButton(4) ){
 				// Take in Cube
 				controllerOperator.setRumble(GenericHID.RumbleType.kLeftRumble, 0.4 );
@@ -756,6 +760,14 @@ public class Robot extends TimedRobot {
 					armBreak.set(Value.kForward); // Break On
 				}
 				ArmMotor.setSpeed(0.0);
+			}
+			
+		// Open Claw when the Trigger is pushed on the Operator Controller
+			if( controllerOperator.getRawAxis(3) > 0.3 ) {
+				clawPinch.set(Value.kReverse); // Set the Pinch to be Open
+			}
+			else {
+				clawPinch.set(Value.kForward); // Set the Pinch to be Close
 			}
 			
 		Scheduler.getInstance().run();
