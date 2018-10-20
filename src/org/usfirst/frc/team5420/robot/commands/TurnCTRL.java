@@ -52,6 +52,7 @@ public class TurnCTRL extends Command {
 	
 	@Override
 	public void initialize(){
+		System.out.println("TurnCTRL");
 		zeroVGyro(); // Reset the Gyro to the Virtual Offset.
 	}
 	

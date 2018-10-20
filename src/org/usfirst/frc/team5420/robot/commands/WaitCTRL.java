@@ -30,6 +30,7 @@ public class WaitCTRL extends Command {
 	
 	@Override
 	protected void initialize() {
+		System.out.println("WaitCTRL");
 		Calendar calculateDate = GregorianCalendar.getInstance();
 		calculateDate.add(GregorianCalendar.MILLISECOND, milliSeconds);
 		waitUntil = calculateDate.getTime();

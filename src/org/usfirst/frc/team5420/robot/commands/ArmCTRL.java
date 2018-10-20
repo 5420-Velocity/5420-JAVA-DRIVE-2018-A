@@ -89,6 +89,8 @@ public class ArmCTRL extends Command {
 		// TODO: Implement the same Saftey feture as the DriveCTRL has line 83.
 		// Do the Drive Operation.
 		
+		System.out.println(ArmCTRL.Encoder.getDistance() + " " + this.targetArm);
+		
 		if( this.tooHigh ){
 			// To High, Needs to go Down.
 			System.out.println("Going Down, Too High");

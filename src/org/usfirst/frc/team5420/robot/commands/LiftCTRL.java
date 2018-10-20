@@ -5,10 +5,12 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 
 import org.usfirst.frc.team5420.robot.EncoderMap;
+import org.usfirst.frc.team5420.robot.Robot;
 import org.usfirst.frc.team5420.robot.SolenoidMap;
 
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.PWMSpeedController;
+import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
 import edu.wpi.first.wpilibj.command.Command;
 
 public class LiftCTRL extends Command {
@@ -36,7 +38,7 @@ public class LiftCTRL extends Command {
 	/**
 	 * Class Definition INIT
 	 * 
-	 * @param MOTORIN    The motor to Contorl
+	 * @param MOTORIN    The motor to Control
 	 * @param encoderLiftMap  The tool to use when Lifting to get to the target.
 	 * @param breakMap   Solenoid Map of the Double Solenoids
 	 */
@@ -72,17 +74,22 @@ public class LiftCTRL extends Command {
 	
 	@Override
 	public void initialize(){
+		System.out.println("LiftCTRL");
 		// Do not reset the Encoder Since it is all relative to the Physical Robot.
 		// Setup the Safety Time.
 				Calendar calculateDate = GregorianCalendar.getInstance();
 				calculateDate.add(GregorianCalendar.SECOND, (int) 2); // Time to Check the Encoder Distance is not Zero
 				EStopEncoderTime = calculateDate.getTime();
+		Robot.liftBreak.set(Value.kForward); // Break Off
 	}
 	
 	@Override
 	protected void execute() {
+		
+		System.out.println(LiftCTRL.LiftEncoder.getDistance() + " " + this.targetArm);
+		
 		// TODO: Add in the Lift Encoder Detection and the Light sensor Detection.
-		// TODO: Implement the same Saftey feture as the DriveCTRL has line 83.
+		// TODO: Implement the same Safety feature as the DriveCTRL has line 83.
 		// Do the Drive Operation.
 		if(LiftCTRL.LiftEncoder.getDistance() > this.targetArm ){
 			if(LiftCTRL.breakMap != null){
@@ -100,7 +107,7 @@ public class LiftCTRL extends Command {
 		
 		
 		// Safety Code, Its made to catch the Human Error of not plugging in the Encoder.
-		//  Enocders will send a 0 value if you don't have an encoder plugged-in to the port.
+		//  Encoders will send a 0 value if you don't have an encoder plugged-in to the port.
 		// Do the Safe Check to see if the Encoders are doing their thing or not after x seconds
 		if( new Date().after(EStopEncoderTime) ) {
 			// If the Encoder is not Past 10 ticks.
@@ -108,6 +115,7 @@ public class LiftCTRL extends Command {
 				System.err.println("WARN:    Encoder Detection Timeout [ArmCTRL]");
 				ArmCTRL.Motor.setSpeed(0);
 				this.isDone = true;
+				Robot.liftBreak.set(Value.kReverse); // Break On
 			}
 		}
 		

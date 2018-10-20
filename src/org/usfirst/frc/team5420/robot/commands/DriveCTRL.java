@@ -51,11 +51,12 @@ public class DriveCTRL extends Command {
 		this.Turn = Turn;
 		this.Crab = Crab;
 		this.DriveDistance = Distance;
-		LocalDrive.stop();
+		//LocalDrive.stop();
 	}
 	
 	@Override
 	public void initialize(){
+		System.out.println("DriveCTRL");
 		// Setup the Safety Time.
 			Calendar calculateDate = GregorianCalendar.getInstance();
 			calculateDate.add(GregorianCalendar.SECOND, (int) 2); // Time to Check the Encoder Distance is not Zero
@@ -66,6 +67,7 @@ public class DriveCTRL extends Command {
 	
 	@Override
 	protected void execute() {
+		System.out.println(getDriveEncoder() + " " + this.DriveDistance);
 		
 		// Do the Drive Operation.
 		// TODO: Add PID to the Robot for Better and efficient driving via Auto.

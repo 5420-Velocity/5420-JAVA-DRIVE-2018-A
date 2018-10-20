@@ -251,8 +251,8 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putBoolean("UpperLimit", false);
 		SmartDashboard.putBoolean("LowerLimits", lowerLimit.get());
 		
-		SmartDashboard.putNumber("Battery", pdp.getVoltage());
-		SmartDashboard.putNumber("CurrentAmps", pdp.getTotalCurrent());
+		//SmartDashboard.putNumber("Battery", pdp.getVoltage());
+		//SmartDashboard.putNumber("CurrentAmps", pdp.getTotalCurrent());
 		
 		// Reset the Encoder Values
 		if(SmartDashboard.getBoolean("ResetDriveENC", false) == true){
@@ -429,11 +429,13 @@ public class Robot extends TimedRobot {
 				if(robotPos == ROBOT_POS_ONE_STR || robotPos == ROBOT_POS_THREE_STR){
 					
 					if(GamePos[1] == 'L') {
-						log("POS 1/3 - Left Color");
+						log("POS 1 - Left Color");
 						
 						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
 						autoRuntime.addSequential( new WaitCTRL(0.5) ); // Wait one Sec
-						autoRuntime.addSequential( new DistanceAlign(0.6, 34) ); // Measure from the Switch, 24in from the Switch past the baseline.
+						
+						// Does not work for an auto align since the Distance sensor does not work.
+						//autoRuntime.addSequential( new DistanceAlign(0.6, 34) ); // Measure from the Switch, 24in from the Switch past the baseline.
 	
 						autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get to the Scale.
@@ -451,7 +453,27 @@ public class Robot extends TimedRobot {
 						
 					}
 					else if(GamePos[1] == 'R') {
-						log("POS 1/3 - Right Color");
+						log("POS 1 - Right Color");
+						
+						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get past the Base line
+						autoRuntime.addSequential( new WaitCTRL(0.5) ); // Wait one Sec
+						
+						// Does not work for an auto align since the Distance sensor does not work.
+						//autoRuntime.addSequential( new DistanceAlign(0.6, 34) ); // Measure from the Switch, 24in from the Switch past the baseline.
+	
+						autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, baseLine) ); // Get to the Scale.
+						autoRuntime.addSequential( new TurnCTRL(0.5, -85) ); // Turn to the Left
+						
+						solenoidUpdate(false, liftBreakOn, liftBreakOff); // Break Off
+						autoRuntime.addSequential( new ArmCTRLHigh(0.8) ); // Lift arm upto the Limit
+						solenoidUpdate(true, liftBreakOn, liftBreakOff); // Break On
+						
+						autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 50) ); // Drive Forward to the Switch
+						autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+						//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
+						autoRuntime.addSequential( new DriveCTRL(-0.5, 0, 0, -50) ); // Drive Backwards from the Switch
 					}
 					
 				}
@@ -525,24 +547,25 @@ public class Robot extends TimedRobot {
 						
 						log("POS 2 - Left Color");
 						
-						autoRuntime.addSequential( new DriveCTRL(0, 0, 0.5, -40) ); // Crab Left, Color is on the Left
-						autoRuntime.addSequential( new LiftCTRL(0.5, 3000) ); // Lift arm up to the target 3000
+						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 20*EncoderIN) ); // Crab Left, Color is on the Left
+						autoRuntime.addSequential( new LiftCTRL(-0.5, 300) ); // Lift arm up to the target 3000
 						autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 500) ); // Drive Forward to the Switch
-						//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
-						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, -500) ); // Drive Backwards from the Switch
+						autoRuntime.addSequential( new DriveCTRL(0, 0, -0.8, 58*EncoderIN) ); // Drive Forward to the Switch
+						////autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
+						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 62*EncoderIN) ); // Drive Backwards from the Switch
 					}
 					else if(GamePos[0] == 'R') {
 						// If out Color is on the right side.
 						
 						log("POS 2 - Right Color");
 						
-						autoRuntime.addSequential( new DriveCTRL(0, 0, 0.5, -80) ); // Crab Left, Color is on the Right
-						autoRuntime.addSequential( new LiftCTRL(0.5, 3000) ); // Lift arm up to the target 3000
+						// FLIP
+						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 20*EncoderIN) ); // Crab Left, Color is on the Left
+						//autoRuntime.addSequential( new LiftCTRL(0.5, -300) ); // Lift arm up to the target 3000
 						autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 500) ); // Drive Forward to the Switch
-						//autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
-						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, -500) ); // Drive Backwards from the Switch
+						autoRuntime.addSequential( new DriveCTRL(0, 0, -0.8, 58*EncoderIN) ); // Drive Forward to the Switch
+						////autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
+						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 62*EncoderIN) ); // Drive Backwards from the Switch
 					}
 					
 				}
@@ -664,9 +687,9 @@ public class Robot extends TimedRobot {
 		// Take in Cube and Push out Cube [IntakeMotor]
 		// Operator A Button (XBOX) and Trigger on Driver Controller (Logitech 3D)
 			if( controllerOperator.getRawButton(4) ){
-				// Take in Cube
+				// Put out Cube
 				controllerOperator.setRumble(GenericHID.RumbleType.kLeftRumble, 0.4 );
-				SmartDashboard.putString("CubeIntake", "In");
+				SmartDashboard.putString("CubeIntake", "Out");
 				IntakeMotor.set(-0.9);
 			}
 			else if( controllerOperator.getRawButton(1) ){
