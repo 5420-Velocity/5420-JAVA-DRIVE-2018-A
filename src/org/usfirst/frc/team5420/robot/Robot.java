@@ -36,9 +36,11 @@ import org.usfirst.frc.team5420.robot.MecDrive;
 import org.usfirst.frc.team5420.robot.OI;
 import org.usfirst.frc.team5420.robot.commands.ArmCTRL;
 import org.usfirst.frc.team5420.robot.commands.ArmCTRLHigh;
+import org.usfirst.frc.team5420.robot.commands.ArmTimed;
 import org.usfirst.frc.team5420.robot.commands.DistanceAlign;
 import org.usfirst.frc.team5420.robot.commands.DriveCTRL;
 import org.usfirst.frc.team5420.robot.commands.LiftCTRL;
+import org.usfirst.frc.team5420.robot.commands.MotorTimed;
 import org.usfirst.frc.team5420.robot.commands.SolenoidCTRL;
 import org.usfirst.frc.team5420.robot.commands.TurnCTRL;
 import org.usfirst.frc.team5420.robot.commands.WaitCTRL;
@@ -136,6 +138,7 @@ public class Robot extends TimedRobot {
 		chooser.addObject("No Auto Selected", NoAuto);
 		chooser.addObject("Scale Auto", ScaleAuto);
 		chooser.addObject("Scale then Switch", ScaleSwitchAuto);
+		chooser.addObject("Base Line", BaseLine);
 		//chooser.addObject("Do it!!!!", "WORK");
 		SmartDashboard.putData("AutoChoices", chooser);
 		
@@ -286,7 +289,7 @@ public class Robot extends TimedRobot {
 	@Override
 	public void disabledPeriodic() {
 		MyDrive.stop(); // Send Stop Message to all drive motors during Stop Command.
-		Scheduler.getInstance().run();
+		//Scheduler.getInstance().run();
 	}
 	
 	@Override
@@ -340,9 +343,10 @@ public class Robot extends TimedRobot {
 			new TurnCTRL(MyDrive, gyroSensor);
 			new DistanceAlign(MyDrive, distSensor);
 			
-			new ArmCTRL(ArmMotor, encoderLift, upperLimit, lowerLimit); // Check
-			new ArmCTRLHigh(LiftMotor, upperLimit, lowerLimit); // Check
-			new LiftCTRL(LiftMotor, encoderArmMap, liftBreakMap); // Check
+			new ArmCTRL(ArmMotor, encoderLift, upperLimit, lowerLimit); // This is just the Mec that holds the cube
+			new ArmTimed(ArmMotor, upperLimit, lowerLimit); // This is just the Mec that holds the cube
+			new ArmCTRLHigh(ArmMotor, upperLimit, lowerLimit); // This is just the Mec that holds the cube
+			new LiftCTRL(LiftMotor, encoderArmMap, liftBreakMap); // This is the Entire Lift
 			
 			/**
 			 * DriverStation.getInstance().getGameSpecificMessage() returns the Data of the Left or Right 
@@ -548,24 +552,28 @@ public class Robot extends TimedRobot {
 						log("POS 2 - Left Color");
 						
 						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 20*EncoderIN) ); // Crab Left, Color is on the Left
-						autoRuntime.addSequential( new LiftCTRL(-0.5, 300) ); // Lift arm up to the target 3000
+						autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+						autoRuntime.addSequential( new ArmCTRL(0.8, 380) ); // Lift arm up to the target 100
 						autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 						autoRuntime.addSequential( new DriveCTRL(0, 0, -0.8, 58*EncoderIN) ); // Drive Forward to the Switch
 						////autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
 						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 62*EncoderIN) ); // Drive Backwards from the Switch
+						autoRuntime.addSequential( new MotorTimed(IntakeMotor, -0.9, 2) ); // Spit out the Cube from the Claw
 					}
 					else if(GamePos[0] == 'R') {
 						// If out Color is on the right side.
 						
 						log("POS 2 - Right Color");
 						
-						// FLIP
-						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 20*EncoderIN) ); // Crab Left, Color is on the Left
-						//autoRuntime.addSequential( new LiftCTRL(0.5, -300) ); // Lift arm up to the target 3000
+						// FLIPED CONTORLS
+						autoRuntime.addSequential( new DriveCTRL(-0.5, 0, 0, 20*EncoderIN) ); // Crab Left, Color is on the Left
 						autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-						autoRuntime.addSequential( new DriveCTRL(0, 0, -0.8, 58*EncoderIN) ); // Drive Forward to the Switch
+						autoRuntime.addSequential( new ArmCTRL(0.8, 380) ); // Lift arm up to the target 100
+						autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
+						autoRuntime.addSequential( new DriveCTRL(0, 0, 0.8, 48*EncoderIN) ); // Drive Forward to the Switch
 						////autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
-						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 62*EncoderIN) ); // Drive Backwards from the Switch
+						autoRuntime.addSequential( new DriveCTRL(-0.5, 0, 0, 62*EncoderIN) ); // Drive Backwards from the Switch
+						autoRuntime.addSequential( new MotorTimed(IntakeMotor, -0.9, 2) ); // Spit out the Cube from the Claw
 					}
 					
 				}
