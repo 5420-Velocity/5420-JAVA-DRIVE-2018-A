@@ -28,12 +28,8 @@ public class MotorTimed extends Command {
 	 */
 	public MotorTimed (PWMSpeedController MOTORIN, double Speed, int targetTimeIn){
 		this.targetTime = Math.abs(targetTimeIn); // Get ABS of the Number.
-		
-		if(targetTimeIn != this.targetTime) {
-			Speed = Speed *-1; // Flip the Speed Value
-		}
-		
-		//ArmTimed.Motor.stopMotor(); // Stop Motors
+		this.speed = Speed;
+		this.Motor = MOTORIN;
 	}	
 	
 	@Override

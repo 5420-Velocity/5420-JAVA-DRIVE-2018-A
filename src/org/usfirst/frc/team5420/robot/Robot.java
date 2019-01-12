@@ -566,13 +566,13 @@ public class Robot extends TimedRobot {
 						log("POS 2 - Right Color");
 						
 						// FLIPED CONTORLS
-						autoRuntime.addSequential( new DriveCTRL(-0.5, 0, 0, 20*EncoderIN) ); // Crab Left, Color is on the Left
+						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 20*EncoderIN) ); // Crab Left, Color is on the Left
 						autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
 						autoRuntime.addSequential( new ArmCTRL(0.8, 380) ); // Lift arm up to the target 100
 						autoRuntime.addSequential( new WaitCTRL(1.0) ); // Wait one Sec
-						autoRuntime.addSequential( new DriveCTRL(0, 0, 0.8, 48*EncoderIN) ); // Drive Forward to the Switch
+						autoRuntime.addSequential( new DriveCTRL(0, 0, 0.8, 58*EncoderIN) ); // Drive Forward to the Switch
 						////autoRuntime.addSequential( new SolenoidCTRL(ClawMap, false) ); // Change State
-						autoRuntime.addSequential( new DriveCTRL(-0.5, 0, 0, 62*EncoderIN) ); // Drive Backwards from the Switch
+						autoRuntime.addSequential( new DriveCTRL(0.5, 0, 0, 62*EncoderIN) ); // Drive Backwards from the Switch
 						autoRuntime.addSequential( new MotorTimed(IntakeMotor, -0.9, 2) ); // Spit out the Cube from the Claw
 					}
 					
@@ -646,6 +646,7 @@ public class Robot extends TimedRobot {
 	 */
 	@Override
 	public void teleopInit() {
+		Scheduler.getInstance().removeAll(); // Clear Tasks so Teleop does not run auto commands 
 		this.MyDrive.DriveControl.setSafetyEnabled(true); // Shuts off motors when their outputs aren't updated often enough.
 		
 		if (autonomousCommand != null)
