@@ -155,7 +155,7 @@ public class Robot extends TimedRobot {
 		breakOn = new Solenoid(3); // Pull the Cylinder Close, Break on 
 		breakOff = new Solenoid(4); // Push the Cylinder Open, Break off
 		
-		liftSensor = new Ultrasonic(2,3); // creates the ultra object andassigns ultra to be an ultrasonic sensor which uses DigitalOutput 1 for 
+		liftSensor = new Ultrasonic(2,3); // creates the ultra object and assigns ultra to be an ultrasonic sensor which uses DigitalOutput 1 for 
 		
 		encoder0 = new Encoder(4,5, true, Encoder.EncodingType.k4X); // Left DIO, DIO, Reversed Count Direction since it is the Right Side
 		encoder1 = new Encoder(6,7, false, Encoder.EncodingType.k4X); // Right DIO, DIO
@@ -167,7 +167,7 @@ public class Robot extends TimedRobot {
 		
 		lowerLimit = new DigitalInput(17); // DIO
 		//UpperLimit = new DigitalInput(1); // DIO
-		CloseMiss = new DigitalInput(25); // Disableed, Used the same Interface as the Encoder
+		CloseMiss = new DigitalInput(25); // Disabled, Used the same Interface as the Encoder
 		
 		clawMotor = new VictorSP(2); // PWM
 		liftMotor = new VictorSP(1); // PWM
